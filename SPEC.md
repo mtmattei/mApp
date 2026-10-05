@@ -1,6 +1,7 @@
 # App Orbit — Spec (v0.1 prototype)
 
-**Status:** spec written and implemented in the same session (read-only prototype).
+**Status:** implemented (read-only prototype). `tests/smoke.mjs` passes the three
+journeys; screenshots in `tests/screenshots/`.
 **Scope:** a spatial app inspector. Semantic zoom over an app graph, an orbital
 layered viewer for the focused screen or component, a docked and an expanded
 mode, four relationship lenses, a flat view, keyboard navigation and reduced
@@ -74,7 +75,9 @@ Derived:
 
 - Focus change = dispatch `{focus: id}`. Trail appends.
 - Zoom in = focus the hovered/keyboard-cursor child.
-- Zoom out = focus the parent from `contextChain`.
+- Zoom out = focus the parent from `contextChain` (structure, not history).
+- Back = previous trail entry (history). Following a route to another screen
+  and coming back is a back, not a zoom out.
 - Camera and lens are preserved across focus changes. Mode changes never move
   the focus or the camera.
 - Mock editor selection → focus; focus → mock editor cursor (both directions,
@@ -164,9 +167,11 @@ screen previews stand in for node icons.
 └────────────┴──────────────────────────────────────┴──────────────────┘
 ```
 
-Docked mode: the viewer shrinks to a 360×240 panel pinned bottom-right over
-the editor; inspector collapses to a one-line status; lens tabs hide; only the
-focus card and its immediate connections render, labels only on focus.
+Docked mode: the viewer shrinks to a 380×260 panel pinned bottom-right over
+the editor; the editor takes the width; lens tabs hide; only the focus card
+and its immediate navigation connections render, without labels. The
+inspector stays, so selecting a line in the editor still shows the entity's
+details.
 
 ### Spatial layers (screen level)
 
@@ -237,7 +242,7 @@ hidden behind a toggle; viewer + inspector. Docked panel never below 320×200.
 3. **Inspection.** Select Place order → select `CanPlaceOrder` → inspector
    shows declared type and expression, evidence excerpts with source refs,
    runtime "unavailable" line, and **Open source** moves the mock editor to
-   `CheckoutViewModel.cs:41`.
+   `CartModel.cs:20`.
 
 ### Input behaviour
 
@@ -249,7 +254,8 @@ hidden behind a toggle; viewer + inspector. Docked panel never below 320×200.
 | wheel out (scale ≤ 0.62) | zoom out to parent |
 | drag on empty scene | orbit (clamped) |
 | `+` / `Enter` | zoom in to hovered/cursor card |
-| `−` / `Backspace` | zoom out |
+| `−` / `Backspace` | zoom out to the parent context |
+| `Alt+←` / back button | back along the trail (after following a relationship) |
 | `Tab` / `Shift+Tab` | move keyboard cursor between cards |
 | arrows (scene focused) | orbit 6° steps |
 | `0` | reset camera |

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>App Orbit</title>
+<meta name="description" content="A spatial app inspector prototype. Semantic zoom over an app graph, an orbital layered viewer, a mock editor and an inspector. Sample app: Orderly." />
+<link rel="stylesheet" href="css/app-orbit.css" />
+</head>
+<body data-mode="expanded" data-view="orbit" data-lens="structure">
+
+<header class="topbar" role="banner">
+  <div class="brand" title="App Orbit">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">App Orbit</span>
+  </div>
+
+  <nav class="breadcrumb" id="breadcrumb" aria-label="Location in the app"></nav>
+
+  <div class="search" id="search">
+    <input id="search-input" type="search" placeholder="Search entities  /" aria-label="Search entities" autocomplete="off" spellcheck="false" />
+    <ul id="search-results" class="search-results" role="listbox" hidden></ul>
+  </div>
+
+  <div class="lens-tabs" id="lens-tabs" role="tablist" aria-label="Relationship lens">
+    <button role="tab" data-lens="structure"  aria-selected="true"><kbd>1</kbd> Structure</button>
+    <button role="tab" data-lens="navigation" aria-selected="false"><kbd>2</kbd> Navigation</button>
+    <button role="tab" data-lens="behavior"   aria-selected="false"><kbd>3</kbd> Behavior</button>
+    <button role="tab" data-lens="states"     aria-selected="false"><kbd>4</kbd> States</button>
+  </div>
+
+  <div class="toggles">
+    <button id="toggle-view" class="toggle" aria-pressed="false" title="Flat view (F)">Flat</button>
+    <button id="toggle-motion" class="toggle" aria-pressed="false" title="Reduce motion">Reduce motion</button>
+    <button id="toggle-mode" class="toggle" aria-pressed="false" title="Dock the viewer (D)">Dock</button>
+    <button id="toggle-help" class="toggle icon" aria-label="Keyboard shortcuts" title="Shortcuts (?)">?</button>
+  </div>
+</header>
+
+<main class="shell">
+  <aside class="editor" id="editor" aria-label="Mock editor">
+    <div class="editor-files" id="editor-files" role="listbox" aria-label="Files"></div>
+    <div class="editor-code" id="editor-code" aria-label="Source"></div>
+  </aside>
+
+  <section class="viewer" id="viewer" aria-label="Orbital viewer" tabindex="0">
+    <div class="viewer-head" id="viewer-head">
+      <button class="viewer-back" id="viewer-back" title="Back along your trail (Alt+←)" aria-label="Back">←</button>
+      <span class="viewer-title" id="viewer-title"></span>
+      <span class="viewer-note" id="viewer-note"></span>
+      <button class="viewer-expand" id="viewer-expand" title="Expand (D)" aria-label="Expand viewer">⤢</button>
+    </div>
+    <div class="stage" id="stage">
+      <div class="world" id="world"></div>
+    </div>
+    <svg class="links" id="links" aria-hidden="true"></svg>
+    <div class="viewer-foot" id="viewer-foot">
+      <span id="camera-readout" class="mono"></span>
+      <button id="camera-reset" class="link-button" title="Reset camera (0)">reset view</button>
+      <span class="zoom-hint">wheel to zoom levels · drag to orbit</span>
+    </div>
+  </section>
+
+  <aside class="inspector" id="inspector" aria-label="Inspector"></aside>
+</main>
+
+<div class="status" id="status" role="status" aria-live="polite"></div>
+
+<dialog id="help" class="help">
+  <h2>Keyboard</h2>
+  <dl>
+    <dt><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></dt><dd>move between cards</dd>
+    <dt><kbd>Enter</kbd> or <kbd>+</kbd></dt><dd>zoom in to the card under the cursor</dd>
+    <dt><kbd>−</kbd> or <kbd>Backspace</kbd></dt><dd>zoom out to the parent context</dd>
+    <dt><kbd>Alt</kbd>+<kbd>←</kbd></dt><dd>back along your trail (after following a relationship)</dd>
+    <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></dt><dd>orbit (when the viewer has focus)</dd>
+    <dt><kbd>0</kbd></dt><dd>reset camera</dd>
+    <dt><kbd>1</kbd>–<kbd>4</kbd></dt><dd>Structure · Navigation · Behavior · States</dd>
+    <dt><kbd>F</kbd></dt><dd>flat ↔ orbit</dd>
+    <dt><kbd>D</kbd></dt><dd>docked ↔ expanded</dd>
+    <dt><kbd>/</kbd></dt><dd>search</dd>
+    <dt><kbd>Esc</kbd></dt><dd>close search or this sheet</dd>
+  </dl>
+  <form method="dialog"><button>Close</button></form>
+</dialog>
+
+<div class="boot-error" id="boot-error" hidden>
+  <h2>App Orbit needs an HTTP origin</h2>
+  <p>The graph is fetched as JSON and the scripts are ES modules, so the page cannot run from <code>file://</code>.</p>
+  <p>Serve the <code>AppOrbit</code> folder and open the printed address:</p>
+  <pre>python -m http.server 8787
+# or
+npx serve .</pre>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
