@@ -85,6 +85,11 @@ recognisable.
 - Wheel zooms continuously; past a threshold over a card it zooms into that
   card, past the lower threshold it zooms out to the parent.
 - Drag orbits (clamped to ±40° yaw, ±22° pitch). `0` resets.
+- `W` toggles preview fidelity: wireframe (hairlines and bars) or UI (the
+  sample app's own content and accent, authored in the graph as `items` and
+  `text` on preview parts).
+- Drag a card to move it. Positions are remembered per view in this browser;
+  *reset layout* puts them back. Drag the empty canvas to orbit.
 - `F` toggles the flat view: same cards, same connectors, no rotation.
 - `D` docks the viewer into a small panel over the editor. Focus and camera
   are kept.

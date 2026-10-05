@@ -14,6 +14,11 @@ const place = (el, r) => {
   el.style.left = pct(r.x); el.style.top = pct(r.y); el.style.width = pct(r.w); el.style.height = pct(r.h);
   return el;
 };
+let fidelity = 'wire';
+export const setFidelity = (mode) => { fidelity = mode === 'ui' ? 'ui' : 'wire'; };
+const HUES = [24, 150, 205, 38, 280, 190];
+const splitValue = (item) => { const i = item.lastIndexOf(' · '); return i > 0 ? [item.slice(0, i), item.slice(i + 3)] : [item, '']; };
+
 const near = (a, b) => Math.abs(a.x - b.x) < 0.015 && Math.abs(a.y - b.y) < 0.015 && Math.abs(a.w - b.w) < 0.015 && Math.abs(a.h - b.h) < 0.015;
 
 function renderPart(part) {
@@ -22,7 +27,8 @@ function renderPart(part) {
   switch (part.kind) {
     case 'heading':
     case 'text':
-      if (part.rows) {
+      if (part.rows && fidelity === 'ui' && part.text) el.textContent = part.text;
+      else if (part.rows) {
         const bars = h('div', 'bars');
         for (let i = 0; i < part.rows; i++) bars.appendChild(h('div', `bar${i === part.rows - 1 ? ' short' : ''}`));
         el.appendChild(bars);
@@ -32,11 +38,22 @@ function renderPart(part) {
     case 'list':
       for (let i = 0; i < (part.rows || 3); i++) {
         const row = h('div', 'row');
-        row.appendChild(h('div', 'thumb'));
-        const bars = h('div', 'bars');
-        bars.appendChild(h('div', 'bar'));
-        bars.appendChild(h('div', 'bar short'));
-        row.appendChild(bars);
+        const thumb = h('div', 'thumb');
+        if (fidelity === 'ui') thumb.style.setProperty('--thumb-hue', HUES[i % HUES.length]);
+        row.appendChild(thumb);
+        const item = fidelity === 'ui' ? part.items?.[i] : null;
+        if (item) {
+          const [name, value] = splitValue(item);
+          const text = h('div', 'item');
+          text.appendChild(h('span', 'item-name', name));
+          if (value) text.appendChild(h('span', 'item-value', value));
+          row.appendChild(text);
+        } else {
+          const bars = h('div', 'bars');
+          bars.appendChild(h('div', 'bar'));
+          bars.appendChild(h('div', 'bar short'));
+          row.appendChild(bars);
+        }
         el.appendChild(row);
       }
       break;
@@ -57,7 +74,7 @@ function renderPart(part) {
 export function renderPreview(g, o) {
   const screen = G.node(g, o.screenId);
   const [w, hgt] = FRAME[o.size || 'lg'];
-  const root = h('div', 'preview');
+  const root = h('div', `preview ${fidelity}`);
   root.style.width = `${w}px`;
   root.style.height = `${hgt}px`;
   root.style.setProperty('--u', `${(w / 220).toFixed(3)}px`);

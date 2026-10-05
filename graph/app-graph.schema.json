@@ -67,6 +67,8 @@
         "rect": { "$ref": "#/$defs/rect" },
         "label": { "type": "string" },
         "rows": { "type": "integer" },
+        "items": { "type": "array", "items": { "type": "string" }, "description": "Sample rows for UI-fidelity previews, \"name · value\"." },
+        "text": { "type": "string", "description": "Sample running text for UI-fidelity previews." },
         "emphasis": { "enum": ["primary", "secondary", "disabled"] }
       }
     },

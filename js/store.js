@@ -31,6 +31,7 @@ export function initialState(graph, prefs) {
     mode: prefs.mode === 'docked' ? 'docked' : 'expanded',
     view: prefs.view === 'flat' ? 'flat' : 'orbit',
     reducedMotion: !!prefs.reducedMotion,
+    fidelity: prefs.fidelity === 'ui' ? 'ui' : 'wire',
     trail: [],
     runtime: { connected: false },
     editor: { fileId: null, line: null },
@@ -50,8 +51,8 @@ export function loadPrefs() {
 
 export function savePrefs(state) {
   try {
-    const { lens, mode, view, reducedMotion, workspaceRoot } = state;
-    localStorage.setItem('app-orbit.prefs', JSON.stringify({ lens, mode, view, reducedMotion, workspaceRoot }));
+    const { lens, mode, view, reducedMotion, workspaceRoot, fidelity } = state;
+    localStorage.setItem('app-orbit.prefs', JSON.stringify({ lens, mode, view, reducedMotion, workspaceRoot, fidelity }));
   } catch {
     /* storage unavailable: preferences are per session */
   }

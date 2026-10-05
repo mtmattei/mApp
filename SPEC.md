@@ -150,8 +150,15 @@ Tradeoff: needs a local static server.
 
 A precise drafting instrument. Paper-toned surfaces, hairline rules, calm
 type, muted entity hues. Depth is restrained and always explanatory: planes
-separate only to show which layer a relationship lives on. Actual wireframe
-screen previews stand in for node icons.
+separate only to show which layer a relationship lives on. Screen previews
+stand in for node icons, in two fidelities: wireframe, and the sample app's
+own UI (content and accent come from the graph, never from the inspector's
+palette).
+
+Craft pass (v0.1.1): one 12px SVG icon set at a single stroke; five type
+sizes (11, 12.5, 13, 15, 20); one control height (28); shadow only on focal
+cards (screen, view model, detail); the entity name appears once (breadcrumb)
+in expanded mode; no toast.
 
 ### Layout structure (expanded mode)
 
@@ -253,6 +260,8 @@ hidden behind a toggle; viewer + inspector. Docked panel never below 320×200.
 | wheel over card (scale ≥ 1.6) | semantic zoom in to that card |
 | wheel out (scale ≤ 0.62) | zoom out to parent |
 | drag on empty scene | orbit (clamped) |
+| drag on a card | move it; offset remembered per (level, focus, lens, view, mode) in this browser; *reset layout* clears |
+| `W` | wireframe ↔ UI preview fidelity |
 | `+` / `Enter` | zoom in to hovered/cursor card |
 | `−` / `Backspace` | zoom out to the parent context |
 | `Alt+←` / back button | back along the trail (after following a relationship) |

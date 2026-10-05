@@ -6,6 +6,8 @@ import { layout } from './layout.js';
 import { createScene } from './scene.js';
 import { renderInspector } from './inspector.js';
 import { createEditor } from './editor.js';
+import { glyph } from './icons.js';
+import { setFidelity } from './preview.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -29,6 +31,7 @@ async function boot() {
     onCursor: (id) => store.dispatch((s) => (s.cursorId === id ? s : { ...s, cursorId: id })),
     onZoomIn: (id) => focus(id),
     onZoomOut: () => zoomOut(),
+    onLayoutChange: (moved) => { $('layout-reset').hidden = !moved; },
     onCamera: (cam, S) => { $('camera-readout').textContent = `yaw ${cam.yaw.toFixed(0)}° · pitch ${cam.pitch.toFixed(0)}° · ${Math.round(S * 100)}%`; },
   });
   const editor = createEditor($('editor-files'), $('editor-code'), {
@@ -48,7 +51,6 @@ async function boot() {
       if (opts.lens) lens = opts.lens;
       return { ...s, focusId: id, trail, editor: editorState, lens, cursorId: null, searchOpen: false, sceneVersion: s.sceneVersion + 1 };
     });
-    status(id ? `${G.TYPE_LABEL[G.node(graph, id).type]} · ${G.node(graph, id).name}` : 'Application');
   }
   function zoomOut() {
     const s = store.get();
@@ -72,6 +74,7 @@ async function boot() {
   const toggleView = () => store.dispatch((s) => ({ ...s, view: s.view === 'orbit' ? 'flat' : 'orbit', sceneVersion: s.sceneVersion + 1 }));
   const toggleMode = () => store.dispatch((s) => ({ ...s, mode: s.mode === 'docked' ? 'expanded' : 'docked', sceneVersion: s.sceneVersion + 1 }));
   const toggleMotion = () => store.dispatch((s) => ({ ...s, reducedMotion: !s.reducedMotion }));
+  const toggleFidelity = () => store.dispatch((s) => ({ ...s, fidelity: s.fidelity === 'ui' ? 'wire' : 'ui', sceneVersion: s.sceneVersion + 1 }));
 
   const inspectorActions = {
     focus: (id, lens) => focus(id, lens ? { lens } : {}),
@@ -84,6 +87,9 @@ async function boot() {
   // ---------- render ----------
   let lastScene = -1, lastMode, lastView, lastLens;
   store.subscribe((s, prev) => {
+    setFidelity(s.fidelity);
+    $('toggle-fidelity').setAttribute('aria-pressed', String(s.fidelity === 'ui'));
+    $('toggle-fidelity').textContent = s.fidelity === 'ui' ? 'UI' : 'Wire';
     document.body.dataset.mode = s.mode;
     document.body.dataset.view = s.view;
     document.body.dataset.lens = s.lens;
@@ -128,7 +134,7 @@ async function boot() {
       }
       const b = document.createElement('button');
       b.type = 'button';
-      if (c.type) { const t = document.createElement('span'); t.className = 'crumb-type'; t.textContent = G.TYPE_GLYPH[c.type]; b.appendChild(t); }
+      if (c.type) b.appendChild(glyph(c.type, 'crumb-type'));
       b.append(c.name);
       if (i === collapsed.length - 1) b.setAttribute('aria-current', 'location');
       b.addEventListener('click', () => focus(c.id));
@@ -151,7 +157,7 @@ async function boot() {
       const li = document.createElement('li');
       li.setAttribute('role', 'option');
       li.setAttribute('aria-selected', String(i === selected));
-      const t = document.createElement('span'); t.className = 'r-type'; t.textContent = `${G.TYPE_GLYPH[n.type]} ${G.TYPE_LABEL[n.type]}`;
+      const t = document.createElement('span'); t.className = 'r-type'; t.appendChild(glyph(n.type)); t.append(` ${G.TYPE_LABEL[n.type]}`);
       const name = document.createElement('span'); name.textContent = n.name;
       const ctx = document.createElement('span'); ctx.className = 'r-ctx';
       const chain = G.contextChain(graph, n.id); ctx.textContent = chain.slice(0, -1).map((c) => c.name).join(' › ');
@@ -178,6 +184,8 @@ async function boot() {
   $('toggle-mode').addEventListener('click', toggleMode);
   $('viewer-expand').addEventListener('click', toggleMode);
   $('toggle-motion').addEventListener('click', toggleMotion);
+  $('toggle-fidelity').addEventListener('click', toggleFidelity);
+  $('layout-reset').addEventListener('click', () => scene.resetOffsets());
   $('toggle-help').addEventListener('click', () => { $('workspace-root').value = store.get().workspaceRoot; $('help').showModal(); });
   $('workspace-root').addEventListener('change', (e) => store.dispatch((s) => ({ ...s, workspaceRoot: e.target.value.trim(), sceneVersion: s.sceneVersion + 1 })));
   $('camera-reset').addEventListener('click', () => scene.resetCamera());
@@ -199,6 +207,7 @@ async function boot() {
       case '1': case '2': case '3': case '4': setLens(LENSES[Number(e.key) - 1]); break;
       case 'f': case 'F': toggleView(); break;
       case 'd': case 'D': toggleMode(); break;
+      case 'w': case 'W': toggleFidelity(); break;
       case 'ArrowLeft': if (e.altKey) { e.preventDefault(); back(); } else if (inViewer && store.get().view === 'orbit') { e.preventDefault(); scene.nudge(-6, 0); } break;
       case 'ArrowRight': if (inViewer && store.get().view === 'orbit') { e.preventDefault(); scene.nudge(6, 0); } break;
       case 'ArrowUp': if (inViewer && store.get().view === 'orbit') { e.preventDefault(); scene.nudge(0, 4); } break;
@@ -207,17 +216,8 @@ async function boot() {
     }
   });
 
-  let statusTimer = 0;
-  function status(text) {
-    const el = $('status');
-    el.textContent = text;
-    el.classList.add('show');
-    clearTimeout(statusTimer);
-    statusTimer = setTimeout(() => el.classList.remove('show'), 1400);
-  }
-
   // expose for tests
-  window.appOrbit = { store, focus, zoomOut, back, setLens, toggleView, toggleMode, scene, graph, layout: () => layout(store.get()) };
+  window.appOrbit = { store, focus, zoomOut, back, setLens, toggleView, toggleMode, toggleFidelity, scene, graph, layout: () => layout(store.get()) };
 
   // first paint
   store.dispatch((s) => ({ ...s, sceneVersion: 1 }));

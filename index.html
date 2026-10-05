@@ -23,13 +23,14 @@
   </div>
 
   <div class="lens-tabs" id="lens-tabs" role="tablist" aria-label="Relationship lens">
-    <button role="tab" data-lens="structure"  aria-selected="true"><kbd>1</kbd> Structure</button>
-    <button role="tab" data-lens="navigation" aria-selected="false"><kbd>2</kbd> Navigation</button>
-    <button role="tab" data-lens="behavior"   aria-selected="false"><kbd>3</kbd> Behavior</button>
-    <button role="tab" data-lens="states"     aria-selected="false"><kbd>4</kbd> States</button>
+    <button role="tab" data-lens="structure"  aria-selected="true" title="Structure (1)">Structure</button>
+    <button role="tab" data-lens="navigation" aria-selected="false" title="Navigation (2)">Navigation</button>
+    <button role="tab" data-lens="behavior"   aria-selected="false" title="Behavior (3)">Behavior</button>
+    <button role="tab" data-lens="states"     aria-selected="false" title="States (4)">States</button>
   </div>
 
   <div class="toggles">
+    <button id="toggle-fidelity" class="toggle" aria-pressed="false" title="Wireframe or UI previews (W)">Wire</button>
     <button id="toggle-view" class="toggle" aria-pressed="false" title="Flat view (F)">Flat</button>
     <button id="toggle-motion" class="toggle" aria-pressed="false" title="Reduce motion">Motion</button>
     <button id="toggle-mode" class="toggle" aria-pressed="false" title="Dock the viewer (D)">Dock</button>
@@ -57,14 +58,14 @@
     <div class="viewer-foot" id="viewer-foot">
       <span id="camera-readout" class="mono"></span>
       <button id="camera-reset" class="link-button" title="Reset camera (0)">reset view</button>
-      <span class="zoom-hint">wheel to zoom levels · drag to orbit</span>
+      <button id="layout-reset" class="link-button" title="Put moved cards back" hidden>reset layout</button>
+      <span class="zoom-hint">wheel to zoom levels · drag the canvas to orbit · drag a card to move it</span>
     </div>
   </section>
 
   <aside class="inspector" id="inspector" aria-label="Inspector"></aside>
 </main>
 
-<div class="status" id="status" role="status" aria-live="polite"></div>
 
 <dialog id="help" class="help">
   <h2>Keyboard</h2>
@@ -76,6 +77,7 @@
     <dt><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></dt><dd>orbit (when the viewer has focus)</dd>
     <dt><kbd>0</kbd></dt><dd>reset camera</dd>
     <dt><kbd>1</kbd>–<kbd>4</kbd></dt><dd>Structure · Navigation · Behavior · States</dd>
+    <dt><kbd>W</kbd></dt><dd>wireframe ↔ UI previews</dd>
     <dt><kbd>F</kbd></dt><dd>flat ↔ orbit</dd>
     <dt><kbd>D</kbd></dt><dd>docked ↔ expanded</dd>
     <dt><kbd>/</kbd></dt><dd>search</dd>

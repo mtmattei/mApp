@@ -1,6 +1,7 @@
 // Details, declared facts, runtime line, relationships and evidence for the focused entity.
 
 import * as G from './graph.js';
+import { glyph } from './icons.js';
 
 const h = (tag, cls, text) => {
   const el = document.createElement(tag);
@@ -24,7 +25,7 @@ export function renderInspector(root, state, actions) {
   if (!n) return;
 
   const eyebrow = h('div', 'eyebrow');
-  eyebrow.appendChild(h('span', `glyph ${n.type}`, G.TYPE_GLYPH[n.type]));
+  eyebrow.appendChild(glyph(n.type));
   eyebrow.appendChild(h('span', null, G.TYPE_LABEL[n.type]));
   const chain = G.contextChain(g, n.id, state.trail);
   const ctx = chain.slice(0, -1).map((c) => c.name).join(' › ');
@@ -79,7 +80,7 @@ export function renderInspector(root, state, actions) {
       if (!other) continue;
       const b = h('button', 'rel');
       b.type = 'button';
-      b.appendChild(h('span', `glyph ${other.type}`, G.TYPE_GLYPH[other.type]));
+      b.appendChild(glyph(other.type));
       const name = h('span', null, other.name);
       if (e.label) name.appendChild(h('span', 'rlabel', `  ${e.label}`));
       if (G.isInferred(e)) name.appendChild(h('span', 'tag inferred', ` inferred ${Math.round((e.evidence.confidence || 0) * 100)}%`));
@@ -129,7 +130,7 @@ function renderApplication(root, g, state, actions) {
   for (const f of G.nodesOf(g, 'feature')) {
     const b = h('button', 'rel');
     b.type = 'button';
-    b.appendChild(h('span', 'glyph feature', G.TYPE_GLYPH.feature));
+    b.appendChild(glyph('feature'));
     b.appendChild(h('span', null, f.name));
     b.appendChild(h('span', 'ctx', `${G.screensOfFeature(g, f.id).length} screens`));
     b.addEventListener('click', () => actions.focus(f.id));

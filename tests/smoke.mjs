@@ -134,6 +134,33 @@ check((await page.locator('#inspector .tag.inferred').count()) >= 1, 'inferred r
 check((await page.locator('#links path.inferred').count()) === 1, 'inferred relationship is drawn dashed');
 await shot('08-inferred');
 
+// ---- fidelity toggle and card dragging ----
+await page.evaluate(() => window.appOrbit.focus('screen.checkout'));
+await page.keyboard.press('3');
+await page.keyboard.press('w');
+await settle();
+check((await page.locator('.preview.ui').count()) >= 1, 'W switches previews to UI fidelity');
+check((await page.locator('.card[data-key="screen.checkout"] .item-name').first().innerText()).includes('Flat white'), 'UI previews show the sample rows from the graph');
+await page.keyboard.press('w');
+await settle();
+check((await page.locator('.preview.wire').count()) >= 1, 'W again returns to wireframes');
+{
+  const head = page.locator('.card[data-key="vm.cart"] .card-head');
+  const b0 = await head.boundingBox();
+  const cx = b0.x + b0.width / 2, cy = b0.y + b0.height / 2;
+  await page.mouse.move(cx, cy); await page.mouse.down();
+  await page.mouse.move(cx + 40, cy + 20, { steps: 5 }); await page.mouse.move(cx + 120, cy + 60, { steps: 10 }); await page.mouse.up();
+  await settle();
+  const b1 = await head.boundingBox();
+  check(b1.x - b0.x > 80 && b1.y - b0.y > 30, `dragging a card moves it (${Math.round(b1.x - b0.x)}, ${Math.round(b1.y - b0.y)})`);
+  check((await state()).focusId === 'screen.checkout', 'dragging does not change the focus');
+  check(await page.locator('#layout-reset').isVisible(), 'reset layout appears after a move');
+  await page.locator('#layout-reset').click();
+  await settle();
+  const b2 = await head.boundingBox();
+  check(Math.abs(b2.x - b0.x) < 1 && Math.abs(b2.y - b0.y) < 1, 'reset layout puts the card back');
+}
+
 // ---- flat view, docked mode, reduced motion, keyboard ----
 await page.evaluate(() => window.appOrbit.focus('screen.checkout'));
 await page.keyboard.press('3');

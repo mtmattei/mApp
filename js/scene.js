@@ -3,6 +3,7 @@
 
 import * as G from './graph.js';
 import { renderPreview, addAnchors } from './preview.js';
+import { glyph } from './icons.js';
 import { FRAME } from './layout.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -24,6 +25,22 @@ export function createScene(els, handlers) {
   let current = null; // { state, layout }
   let raf = 0;
   let suppressClick = false;
+  const cardEls = new Map(); // key → { el, card }
+  let offsets = loadOffsets();
+  const layoutId = (state, layout) => `${layout.level}:${state.focusId || ''}:${state.lens}:${state.view}:${state.mode}`;
+  const offsetOf = (key) => (current && offsets[layoutId(current.state, current.layout)]?.[key]) || { x: 0, y: 0 };
+  function placeCard(el, c) {
+    const o = offsetOf(c.key);
+    el.style.transform = `translate3d(${c.x + o.x - c.w / 2}px, ${c.y + o.y - c.h / 2}px, ${c.z}px) rotateY(${c.rotY || 0}deg)`;
+  }
+  function resetOffsets() {
+    if (!current) return;
+    delete offsets[layoutId(current.state, current.layout)];
+    saveOffsets(offsets);
+    for (const { el, card } of cardEls.values()) placeCard(el, card);
+    drawLinks();
+    handlers.onLayoutChange?.(false);
+  }
 
   // ---------- camera ----------
   function setCamera(patch, immediate) {
@@ -73,7 +90,13 @@ export function createScene(els, handlers) {
     const prevView = current?.state.view;
     current = { state, layout };
     world.innerHTML = '';
-    for (const c of layout.cards) world.appendChild(renderCard(state.graph, c, state));
+    cardEls.clear();
+    for (const c of layout.cards) {
+      const el = renderCard(state.graph, c, state);
+      cardEls.set(c.key, { el, card: c });
+      world.appendChild(el);
+    }
+    handlers.onLayoutChange?.(!!offsets[layoutId(state, layout)]);
     if (prevView !== state.view) setCamera({ ...DEFAULT_CAM[state.view] }, true);
     computeFit();
     world.classList.remove('enter');
@@ -92,7 +115,7 @@ export function createScene(els, handlers) {
     el.dataset.id = c.id;
     el.style.width = `${c.w}px`;
     el.style.height = `${c.h}px`;
-    el.style.transform = `translate3d(${c.x - c.w / 2}px, ${c.y - c.h / 2}px, ${c.z}px) rotateY(${c.rotY || 0}deg)`;
+    placeCard(el, c);
     const face = h('div', 'face');
     face.setAttribute('role', 'button');
     face.tabIndex = 0;
@@ -113,9 +136,9 @@ export function createScene(els, handlers) {
     return el;
   }
 
-  function head(face, glyph, name, type, tags = []) {
+  function head(face, type0, name, type, tags = []) {
     const hd = h('div', 'card-head');
-    hd.appendChild(h('span', 'glyph', glyph));
+    hd.appendChild(glyph(type0));
     hd.appendChild(h('span', 'name', name));
     for (const t of tags) if (t) hd.appendChild(h('span', `tag ${t}`, t));
     hd.appendChild(h('span', 'type', type));
@@ -124,7 +147,7 @@ export function createScene(els, handlers) {
   }
 
   function fillScreen(g, face, c, n) {
-    head(face, G.TYPE_GLYPH.screen, n.name, 'Screen', [c.isEntry ? 'entry' : '']);
+    head(face, 'screen', n.name, 'Screen', [c.isEntry ? 'entry' : '']);
     const body = h('div', 'card-body');
     body.style.padding = '8px';
     body.appendChild(renderPreview(g, {
@@ -136,7 +159,7 @@ export function createScene(els, handlers) {
   }
 
   function fillFeature(g, face, c, n) {
-    head(face, G.TYPE_GLYPH.feature, n.name, 'Feature');
+    head(face, 'feature', n.name, 'Feature');
     const grid = h('div', 'plate-screens');
     for (const s of c.screens) {
       const b = h('button', 'plate-screen');
@@ -160,7 +183,7 @@ export function createScene(els, handlers) {
   }
 
   function fillVm(g, face, c, n) {
-    head(face, G.TYPE_GLYPH.viewmodel, n.name, 'View model', [c.tag]);
+    head(face, 'viewmodel', n.name, 'View model', [c.tag]);
     const list = h('div', 'members');
     if (c.rows) { list.classList.add('aligned'); list.style.height = `${c.h - 30 - 8}px`; }
     if (c.sub) { const sub = h('div', 'sub vm-sub', c.sub); list.appendChild(sub); }
@@ -173,7 +196,7 @@ export function createScene(els, handlers) {
       row.setAttribute('aria-label', `${G.TYPE_LABEL[m.type]} ${m.name}`);
       if (c.hot.has(m.id)) row.classList.add('hot');
       if (c.faded.has(m.id)) row.classList.add('faded');
-      row.appendChild(h('span', 'glyph', G.TYPE_GLYPH[m.type]));
+      row.appendChild(glyph(m.type));
       row.appendChild(h('span', 'mname', m.name));
       row.appendChild(h('span', 'mtype', m.properties?.clrType || ''));
       addAnchors(row, `${c.key}/${m.id}`);
@@ -185,23 +208,22 @@ export function createScene(els, handlers) {
 
   function fillChip(g, face, c, n) {
     face.parentElement.classList.add('chip');
-    const hd = head(face, G.TYPE_GLYPH[n.type], c.title || n.name, '', [c.tag]);
+    const hd = head(face, n.type, c.title || n.name, '', [c.tag]);
     if (c.mono) hd.querySelector('.name').classList.add('mono');
     if (c.routeId) {
-      const rb = h('button', 'tag', 'route');
+      const rb = h('button', 'route-btn');
       rb.type = 'button';
       rb.dataset.id = c.routeId;
       rb.title = 'Inspect the route';
-      rb.style.marginLeft = 'auto';
-      rb.style.cursor = 'pointer';
-      rb.style.background = 'none';
+      rb.setAttribute('aria-label', 'Inspect the route');
+      rb.appendChild(glyph('route'));
       hd.querySelector('.type').replaceWith(rb);
     }
     if (c.sub) face.appendChild(h('div', 'card-body sub', c.sub));
   }
 
   function fillState(g, face, c, n) {
-    head(face, G.TYPE_GLYPH.state, n.name, c.ownerName || 'State');
+    head(face, 'state', n.name, c.ownerName || 'State');
     const body = h('div', 'card-body');
     body.style.padding = '8px';
     if (c.screenId) body.appendChild(renderPreview(g, { screenId: c.screenId, size: c.size, stateId: c.id, highlightId: c.highlightId, quiet: c.size !== 'lg' && c.size !== 'md' }));
@@ -210,7 +232,7 @@ export function createScene(els, handlers) {
 
   function fillDetail(g, face, c, n, state) {
     face.parentElement.classList.add('detail');
-    head(face, G.TYPE_GLYPH[n.type], n.name, G.TYPE_LABEL[n.type]);
+    head(face, n.type, n.name, G.TYPE_LABEL[n.type]);
     const body = h('div', 'card-body');
     const kv = h('dl', 'kv');
     const add = (k, v) => { if (v == null || v === '') return; kv.appendChild(h('dt', null, k)); kv.appendChild(h('dd', null, String(v))); };
@@ -318,20 +340,39 @@ export function createScene(els, handlers) {
   let drag = null;
   stage.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
-    drag = { x: e.clientX, y: e.clientY, yaw: target.yaw, pitch: target.pitch, moved: false, pointerId: e.pointerId };
+    const cardEl = e.target.closest('.card');
+    const key = cardEl?.dataset.key;
+    const base = key ? offsetOf(key) : null;
+    drag = { x: e.clientX, y: e.clientY, yaw: target.yaw, pitch: target.pitch, moved: false, pointerId: e.pointerId, key, base };
   });
   stage.addEventListener('pointermove', (e) => {
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) < 5) return;
-    if (!drag.moved) { drag.moved = true; stage.classList.add('dragging'); try { stage.setPointerCapture(drag.pointerId); } catch { /* pointer gone */ } }
+    if (!drag.moved) { drag.moved = true; stage.classList.add(drag.key ? 'moving' : 'dragging'); try { stage.setPointerCapture(drag.pointerId); } catch { /* pointer gone */ } }
+    if (drag.key) {
+      // move the card in scene units: undo the camera scale and the foreshortening of the orbit
+      const S = fit.scale * cam.scale;
+      const kx = Math.max(0.5, Math.cos((cam.yaw * Math.PI) / 180));
+      const ky = Math.max(0.5, Math.cos((cam.pitch * Math.PI) / 180));
+      const id = layoutId(current.state, current.layout);
+      offsets[id] = offsets[id] || {};
+      offsets[id][drag.key] = { x: Math.round(drag.base.x + dx / (S * kx)), y: Math.round(drag.base.y + dy / (S * ky)) };
+      const entry = cardEls.get(drag.key);
+      if (entry) { placeCard(entry.el, entry.card); drawLinks(); }
+      return;
+    }
     if (current?.state.view === 'flat') return;
     setCamera({ yaw: drag.yaw + dx * 0.25, pitch: drag.pitch - dy * 0.18 }, true);
   });
   const endDrag = () => {
-    if (drag?.moved) { suppressClick = true; setTimeout(() => (suppressClick = false), 0); }
+    if (drag?.moved) {
+      suppressClick = true;
+      setTimeout(() => (suppressClick = false), 0);
+      if (drag.key) { saveOffsets(offsets); handlers.onLayoutChange?.(true); }
+    }
     drag = null;
-    stage.classList.remove('dragging');
+    stage.classList.remove('dragging', 'moving');
   };
   stage.addEventListener('pointerup', endDrag);
   stage.addEventListener('pointercancel', endDrag);
@@ -386,7 +427,14 @@ export function createScene(els, handlers) {
 
   new ResizeObserver(() => { if (current) { computeFit(); apply(); } }).observe(stage);
 
-  return { render, setCamera, getCamera, resetCamera, updateHighlights, drawLinks, nudge: (dy, dp) => setCamera({ yaw: target.yaw + dy, pitch: target.pitch + dp }) };
+  return { render, setCamera, getCamera, resetCamera, resetOffsets, updateHighlights, drawLinks, nudge: (dy, dp) => setCamera({ yaw: target.yaw + dy, pitch: target.pitch + dp }) };
 }
 
 export { FRAME };
+
+function loadOffsets() {
+  try { return JSON.parse(localStorage.getItem('app-orbit.offsets') || '{}') || {}; } catch { return {}; }
+}
+function saveOffsets(o) {
+  try { localStorage.setItem('app-orbit.offsets', JSON.stringify(o)); } catch { /* per-session only */ }
+}
