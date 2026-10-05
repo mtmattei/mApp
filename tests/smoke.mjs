@@ -118,12 +118,15 @@ await page.evaluate(() => window.appOrbit.focus('prop.cart.can-place-order'));
 await settle();
 const inspector = await page.locator('#inspector').innerText();
 check(inspector.includes('IFeed<bool>'), 'inspector shows the declared type');
-check(inspector.includes('Live values unavailable'), 'inspector marks runtime values unavailable');
+check(inspector.includes('unavailable · no running app connected'), 'inspector marks the live value unavailable');
 check(inspector.includes('CartModel.cs:20'), 'inspector shows the source reference');
 check(inspector.includes('declared'), 'inspector shows evidence kind');
-await page.locator('#inspector .actions button', { hasText: 'Open source' }).click();
+check(!inspector.includes('propertys') && !inspector.includes('clrType'), 'inspector labels are human (no raw keys, no bad plurals)');
+await page.locator('#editor-files .file[data-file="f.app"]').click();
 await settle();
-check((await page.locator('#editor-code .line.at').innerText()).includes('CanPlaceOrder'), 'Open source moves the editor to the CanPlaceOrder line');
+await page.locator('#inspector .source-row .src-link').click();
+await settle();
+check((await page.locator('#editor-code .line.at').innerText()).includes('CanPlaceOrder'), 'the source link moves the editor to the CanPlaceOrder line');
 // editor → viewer
 await page.locator('#editor-code .line[data-line="27"]').click();
 await settle();

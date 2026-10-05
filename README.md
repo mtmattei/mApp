@@ -41,10 +41,11 @@ file tree:
 3. Where is **OrderLineRow** used? Type it in search, press Enter. The
    definition view shows the three screens with the instance highlighted on each.
 
-Then the deeper journey: Place order → `3` → `CanPlaceOrder` → **Open source**
-lands on `CartModel.cs:20`, with the three members it reads and the
-*Disabled* state it drives. Set a workspace root in the `?` sheet and the
-inspector adds an **Open in VS Code** link (`vscode://file/…:line`) beside it.
+Then the deeper journey: Place order → `3` → `CanPlaceOrder`. The editor
+follows every selection, and the inspector's source link reads
+`CartModel.cs:20`, under the three members it reads and the *Disabled* state
+it drives. Set a workspace root in the `?` sheet and the inspector adds an
+*open in VS Code* link (`vscode://file/…:line`).
 
 ## What is here
 
