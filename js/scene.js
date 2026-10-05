@@ -405,7 +405,8 @@ export function createScene(els, handlers) {
   let zoomLock = 0;
   viewer.addEventListener('wheel', (e) => {
     e.preventDefault();
-    if (performance.now() < zoomLock) return;
+    // after a level change, swallow the rest of the gesture (trackpad momentum) until the events pause
+    if (performance.now() < zoomLock) { zoomLock = performance.now() + 250; return; }
     const factor = Math.exp(-e.deltaY * 0.0016);
     const next = clamp(target.scale * factor, 0.45, 2.4);
     const hit = e.target.closest?.('[data-id]');

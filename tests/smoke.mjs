@@ -60,6 +60,7 @@ await checkoutCard.hover();
 for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, -120); await page.waitForTimeout(40); }
 await settle();
 check((await state()).focusId === 'screen.checkout', 'wheel past the threshold over a card zooms into it');
+check(Math.abs((await page.evaluate(() => window.appOrbit.scene.getCamera().scale)) - 1) < 0.01, 'the semantic jump resets the continuous scale to 100%');
 
 // ---- 2. Relationship tracing ----
 await page.keyboard.press('2');
