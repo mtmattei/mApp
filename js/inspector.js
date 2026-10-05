@@ -35,6 +35,8 @@ export function renderInspector(root, state, actions) {
 
   const acts = h('div', 'actions');
   if (n.source) acts.appendChild(button('Open source', () => actions.openSource(n), 'primary'));
+  const deep = editorLink(g, n.source, state.workspaceRoot);
+  if (deep) acts.appendChild(deep);
   if (n.type === 'component') acts.appendChild(button(`Find all uses (${G.instancesOf(g, n.id).length})`, () => actions.focus(n.id, 'structure')));
   if (n.type === 'component-instance' && G.definitionOf(g, n.id)) acts.appendChild(button('Other uses', () => actions.focusLens(G.definitionOf(g, n.id).id)));
   if (n.type === 'viewmodel') acts.appendChild(button(`Screens served (${G.screensUsingVm(g, n.id).length})`, () => actions.focusLens(n.id)));
@@ -159,6 +161,21 @@ function evidence(g, ev, source, actions) {
     box.appendChild(h('pre', null, fl.text.trim()));
   }
   return box;
+}
+
+/** vscode://file/<root>/<path>:<line>, only when a workspace root is configured. */
+function editorLink(g, ref, root) {
+  if (!ref || !root) return null;
+  const fl = G.fileLine(g, ref);
+  if (!fl) return null;
+  const sep = root.includes('\\') ? '\\' : '/';
+  const full = root.replace(/[\\/]+$/, '') + sep + fl.path.split('/').join(sep);
+  const a = document.createElement('a');
+  a.href = `vscode://file/${full}:${ref.line}`;
+  a.textContent = 'Open in VS Code';
+  a.className = 'editor-link';
+  a.title = full;
+  return a;
 }
 
 function flatten(obj, prefix = '') {

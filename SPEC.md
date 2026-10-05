@@ -405,11 +405,12 @@ Type: system UI 11/12.5/13/15/20; mono for refs
 
 ## Unresolved Questions
 
-- Real editor deep link: the prototype opens the mock editor. A `vscode://`
-  or Uno Studio protocol link needs a workspace root; deferred.
+- Real editor deep link: the mock editor is the default. An optional workspace
+  root (in the `?` sheet, stored per browser) adds a `vscode://file` link. An
+  Uno Studio protocol link is still open.
 - Should zoom-out from a shared view model go to the screen you came from
   (trail) or always to a "Behavior" overview? v0.1 uses the trail.
-- Layer offsets (z −240, x ±420) are tuned for a 1440px viewport. They need a
-  pass on a 13" laptop.
+- Layer offsets were checked at 1440×900 and 1280×720. Below 1100px the editor
+  hides; below 760px the inspector stacks under the viewer.
 - Whether the Uno Studio version renders with Composition, SkiaSharp, or
   PlaneProjection is a later decision and does not affect the graph.

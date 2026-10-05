@@ -94,6 +94,7 @@ function layoutApplication(g, lens, flat, docked) {
   if (docked) return { cards, links, note: '' };
 
   if (lens === 'navigation') {
+    let k = 0;
     for (const r of G.nodesOf(g, 'route')) {
       const target = G.routeTarget(g, r.id);
       for (const o of G.routeOrigins(g, r.id)) {
@@ -101,7 +102,7 @@ function layoutApplication(g, lens, flat, docked) {
         if (!fromKey || !toKey) continue;
         const cross = fromKey !== toKey;
         links.push(link(`${fromKey}/${o.screen.id}:${cross ? 'r' : 'c'}`, `${toKey}/${target.id}:${cross ? 'l' : 'c'}`, 'route',
-          cross ? (o.via.type === 'command' ? o.via.name : o.via.name) : '', { arrow: true, id: r.id }));
+          cross ? o.via.name : '', { arrow: true, id: r.id, labelT: cross ? 0.25 + 0.25 * (k % 3) : 0.5, labelDy: k++ % 2 ? 14 : -5 }));
       }
     }
   }

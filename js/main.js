@@ -178,7 +178,8 @@ async function boot() {
   $('toggle-mode').addEventListener('click', toggleMode);
   $('viewer-expand').addEventListener('click', toggleMode);
   $('toggle-motion').addEventListener('click', toggleMotion);
-  $('toggle-help').addEventListener('click', () => $('help').showModal());
+  $('toggle-help').addEventListener('click', () => { $('workspace-root').value = store.get().workspaceRoot; $('help').showModal(); });
+  $('workspace-root').addEventListener('change', (e) => store.dispatch((s) => ({ ...s, workspaceRoot: e.target.value.trim(), sceneVersion: s.sceneVersion + 1 })));
   $('camera-reset').addEventListener('click', () => scene.resetCamera());
   $('viewer-back').addEventListener('click', back);
   media.addEventListener('change', (e) => store.dispatch((s) => ({ ...s, reducedMotion: e.matches })));

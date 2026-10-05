@@ -289,7 +289,7 @@ export function createScene(els, handlers) {
         const cp = horizontal ? [[(x1 + x2) / 2, y1], [(x1 + x2) / 2, y2]] : [[x1, (y1 + y2) / 2], [x2, (y1 + y2) / 2]];
         const bz = (a, b, c2, d) => (1 - tt) ** 3 * a + 3 * (1 - tt) ** 2 * tt * b + 3 * (1 - tt) * tt ** 2 * c2 + tt ** 3 * d;
         t.setAttribute('x', bz(x1, cp[0][0], cp[1][0], x2));
-        t.setAttribute('y', bz(y1, cp[0][1], cp[1][1], y2) - 5);
+        t.setAttribute('y', bz(y1, cp[0][1], cp[1][1], y2) + (l.labelDy ?? -5));
         t.setAttribute('text-anchor', 'middle');
         t.setAttribute('class', `label${l.inferred ? ' inferred' : ''}`);
         if (hover && !hot) t.style.opacity = '.3';

@@ -43,7 +43,8 @@ file tree:
 
 Then the deeper journey: Place order → `3` → `CanPlaceOrder` → **Open source**
 lands on `CartModel.cs:20`, with the three members it reads and the
-*Disabled* state it drives.
+*Disabled* state it drives. Set a workspace root in the `?` sheet and the
+inspector adds an **Open in VS Code** link (`vscode://file/…:line`) beside it.
 
 ## What is here
 

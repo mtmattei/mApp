@@ -31,7 +31,7 @@
 
   <div class="toggles">
     <button id="toggle-view" class="toggle" aria-pressed="false" title="Flat view (F)">Flat</button>
-    <button id="toggle-motion" class="toggle" aria-pressed="false" title="Reduce motion">Reduce motion</button>
+    <button id="toggle-motion" class="toggle" aria-pressed="false" title="Reduce motion">Motion</button>
     <button id="toggle-mode" class="toggle" aria-pressed="false" title="Dock the viewer (D)">Dock</button>
     <button id="toggle-help" class="toggle icon" aria-label="Keyboard shortcuts" title="Shortcuts (?)">?</button>
   </div>
@@ -81,6 +81,11 @@
     <dt><kbd>/</kbd></dt><dd>search</dd>
     <dt><kbd>Esc</kbd></dt><dd>close search or this sheet</dd>
   </dl>
+  <div class="setting">
+    <label for="workspace-root">Workspace root for editor links</label>
+    <input id="workspace-root" type="text" placeholder="C:\src\Orderly  or  /Users/me/src/Orderly" spellcheck="false" />
+    <span class="hint">When set, the inspector offers an "Open in VS Code" link (vscode://file/…) next to Open source. Kept in this browser only.</span>
+  </div>
   <form method="dialog"><button>Close</button></form>
 </dialog>
 

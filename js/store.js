@@ -34,6 +34,7 @@ export function initialState(graph, prefs) {
     trail: [],
     runtime: { connected: false },
     editor: { fileId: null, line: null },
+    workspaceRoot: typeof prefs.workspaceRoot === 'string' ? prefs.workspaceRoot : '',
     searchOpen: false,
     sceneVersion: 0,
   };
@@ -49,8 +50,8 @@ export function loadPrefs() {
 
 export function savePrefs(state) {
   try {
-    const { lens, mode, view, reducedMotion } = state;
-    localStorage.setItem('app-orbit.prefs', JSON.stringify({ lens, mode, view, reducedMotion }));
+    const { lens, mode, view, reducedMotion, workspaceRoot } = state;
+    localStorage.setItem('app-orbit.prefs', JSON.stringify({ lens, mode, view, reducedMotion, workspaceRoot }));
   } catch {
     /* storage unavailable: preferences are per session */
   }

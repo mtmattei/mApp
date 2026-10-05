@@ -101,7 +101,7 @@ kbd {
 .topbar {
   min-height: var(--topbar-h); flex: none;
   display: grid;
-  grid-template-columns: auto minmax(200px, 1fr) minmax(180px, 260px) auto auto;
+  grid-template-columns: auto minmax(160px, 1fr) minmax(150px, 240px) auto auto;
   align-items: center;
   gap: var(--s4);
   padding: 0 var(--s4);
@@ -156,7 +156,7 @@ kbd {
 
 .toggles { display: flex; gap: var(--s2); }
 .toggle {
-  border: 1px solid var(--rule); background: var(--paper); border-radius: 6px; padding: 4px 10px; cursor: pointer; color: var(--ink-2);
+  border: 1px solid var(--rule); background: var(--paper); border-radius: 6px; padding: 4px 10px; cursor: pointer; color: var(--ink-2); white-space: nowrap;
 }
 .toggle[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .toggle.icon { width: 30px; padding: 4px 0; text-align: center; }
@@ -168,7 +168,7 @@ kbd {
   grid-template-columns: var(--editor-w) 1fr var(--inspector-w);
   position: relative;
 }
-@media (max-width: 1400px) { :root { --inspector-w: 280px; } }
+@media (max-width: 1400px) { :root { --inspector-w: 280px; } .lens-tabs kbd { display: none; } }
 @media (max-width: 1100px) {
   .shell { grid-template-columns: 0 1fr var(--inspector-w); }
   body[data-mode="expanded"] .editor { display: none; }
@@ -423,6 +423,8 @@ kbd {
   border: 1px solid var(--rule); background: var(--paper); border-radius: 6px; padding: 4px 10px; cursor: pointer;
 }
 .inspector .actions button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.inspector .actions .editor-link { border: 1px solid var(--rule); border-radius: 6px; padding: 4px 10px; color: var(--ink); text-decoration: none; }
+.inspector .actions .editor-link:hover { border-color: var(--ink-3); }
 .inspector h3 { font-size: var(--fs-11); color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; margin: var(--s5) 0 var(--s2); font-weight: 600; display: flex; align-items: baseline; gap: 6px; }
 .inspector h3 .count { color: var(--ink-3); font-weight: 400; }
 .inspector dl.kv { display: grid; grid-template-columns: 110px 1fr; gap: 3px 10px; margin: 0; font-size: var(--fs-12); }
@@ -500,3 +502,8 @@ body[data-mode="docked"] .lens-tabs { visibility: hidden; }
   body[data-mode="docked"] .shell { grid-template-columns: 1fr; }
   body[data-mode="docked"] .viewer { position: static; width: auto; height: auto; border: 0; box-shadow: none; }
 }
+
+.help .setting { display: grid; gap: 4px; margin: 0 0 var(--s4); }
+.help .setting label { font-size: var(--fs-11); color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
+.help .setting input { height: 30px; padding: 0 var(--s2); border: 1px solid var(--rule); border-radius: 6px; background: var(--paper-2); color: var(--ink); font: var(--fs-12) var(--mono); }
+.help .setting .hint { color: var(--ink-3); font-size: var(--fs-11); }
