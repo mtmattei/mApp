@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uno-builds.local/app-orbit/app-graph.schema.json",
+  "title": "App Graph v0.1",
+  "description": "Entities and relationships that describe how an application is composed and how it behaves. Extends the Design Graph ontology (design-graph-kit) with behaviour: view models, members, routes, features. Every node and edge carries evidence; inferred relationships must say so.",
+  "type": "object",
+  "required": ["schemaVersion", "graphId", "name", "entry", "nodes", "edges"],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "graphId": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "entry": { "type": "string", "description": "Id of the screen shown first." },
+    "files": {
+      "type": "array",
+      "description": "Source excerpts the inspector can open. Line numbers are 1-based and match node.source.line.",
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "language", "startLine", "lines"],
+        "properties": {
+          "id": { "type": "string" },
+          "path": { "type": "string" },
+          "language": { "enum": ["xaml", "csharp", "json", "other"] },
+          "startLine": { "type": "integer", "minimum": 1 },
+          "lines": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } },
+    "unresolved": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "required": ["kind", "confidence"],
+      "properties": {
+        "kind": { "enum": ["observed", "declared", "derived", "inferred"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "source": { "$ref": "#/$defs/sourceRef" },
+        "rationale": { "type": "string" }
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "required": ["file", "line"],
+      "properties": {
+        "file": { "type": "string", "description": "files[].id" },
+        "line": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "rect": {
+      "type": "object",
+      "description": "Fraction of the preview frame, 0..1.",
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "number" }, "y": { "type": "number" },
+        "w": { "type": "number" }, "h": { "type": "number" }
+      }
+    },
+    "previewPart": {
+      "type": "object",
+      "required": ["kind", "rect"],
+      "properties": {
+        "kind": { "enum": ["heading", "text", "button", "list", "image", "input", "stepper", "badge", "bar", "empty", "spinner", "alert"] },
+        "rect": { "$ref": "#/$defs/rect" },
+        "label": { "type": "string" },
+        "rows": { "type": "integer" },
+        "emphasis": { "enum": ["primary", "secondary", "disabled"] }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "type", "name", "evidence"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z]+(\\.[a-z0-9-]+)+$" },
+        "type": {
+          "enum": ["feature", "screen", "component", "component-instance", "viewmodel", "property", "command", "state", "route"]
+        },
+        "name": { "type": "string" },
+        "summary": { "type": "string" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "source": { "$ref": "#/$defs/sourceRef", "description": "Primary definition location." },
+        "properties": {
+          "type": "object",
+          "description": "Type-specific declared facts (clrType, expression, default, trigger, uno.type, uno.xName ...)."
+        },
+        "preview": {
+          "type": "object",
+          "description": "Screens: wireframe parts. Component instances: bounds in the host screen. States: part overrides.",
+          "properties": {
+            "parts": { "type": "array", "items": { "$ref": "#/$defs/previewPart" } },
+            "bounds": { "$ref": "#/$defs/rect" },
+            "overrides": { "type": "array", "items": { "$ref": "#/$defs/previewPart" } },
+            "dim": { "type": "array", "items": { "type": "string" }, "description": "Instance ids drawn as disabled in this state." },
+            "hide": { "type": "array", "items": { "type": "string" }, "description": "Instance ids hidden in this state." }
+          }
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["from", "relation", "to", "evidence"],
+      "properties": {
+        "from": { "type": "string" },
+        "relation": {
+          "enum": [
+            "belongs-to", "contains", "instance-of", "uses-viewmodel", "exposes",
+            "binds-to", "invokes", "navigates-to", "has-state", "transitions-to",
+            "depends-on", "entered-via"
+          ]
+        },
+        "to": { "type": "string" },
+        "label": { "type": "string", "description": "e.g. the bound property name (IsEnabled, Command, ItemsSource)." },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    }
+  },
+  "x-relationRules": {
+    "belongs-to":     { "from": ["screen"], "to": ["feature"] },
+    "contains":       { "from": ["screen", "component", "component-instance"], "to": ["component-instance"] },
+    "instance-of":    { "from": ["component-instance"], "to": ["component"] },
+    "uses-viewmodel": { "from": ["screen", "component"], "to": ["viewmodel"] },
+    "exposes":        { "from": ["viewmodel"], "to": ["property", "command"] },
+    "binds-to":       { "from": ["component-instance", "screen"], "to": ["property"] },
+    "invokes":        { "from": ["component-instance"], "to": ["command"] },
+    "navigates-to":   { "from": ["route"], "to": ["screen"] },
+    "entered-via":    { "from": ["screen", "command", "component-instance"], "to": ["route"] },
+    "has-state":      { "from": ["screen", "component-instance", "component"], "to": ["state"] },
+    "transitions-to": { "from": ["state", "command"], "to": ["state"] },
+    "depends-on":     { "from": ["property", "command", "state"], "to": ["property", "command"] }
+  }
+}
