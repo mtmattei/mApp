@@ -487,8 +487,11 @@ kbd {
 .dock-ghost.hard { border-style: solid; border-color: var(--focus); background: var(--focus-soft); }
 
 /* ---------- docked mode ---------- */
-body[data-mode="docked"] .shell { grid-template-columns: 1fr 0 var(--inspector-w); }
-body[data-mode="docked"] .editor { border-right: 0; }
+body[data-mode="docked"] .shell { grid-template-columns: var(--editor-w) 0 1fr; }
+/* the inspector takes the width; its text keeps a readable measure and leaves the dock corner clear */
+body[data-mode="docked"] .inspector { padding-right: var(--s5); }
+body[data-mode="docked"] .inspector > * { max-width: 640px; }
+body[data-mode="docked"] .inspector .evidence pre, body[data-mode="docked"] .inspector dl.kv { max-width: 640px; }
 body[data-mode="docked"] .viewer {
   border: 1px solid var(--rule); border-radius: var(--radius); box-shadow: var(--shadow); z-index: 10;
   background-size: 16px 16px;

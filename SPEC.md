@@ -182,7 +182,7 @@ in expanded mode; no toast.
 ```
 
 Docked mode: the viewer shrinks to a 380×260 panel pinned bottom-right over
-the editor; the editor takes the width; lens tabs hide; only the focus card
+the inspector; the inspector takes the width; lens tabs hide; only the focus card
 and its immediate navigation connections render, without labels. The
 inspector stays, so selecting a line in the editor still shows the entity's
 details.
@@ -291,7 +291,7 @@ free. Picking it up by its head bar lifts it: the shadow deepens, it scales
 to carry size about the grab point so the point under the pointer never
 moves, and the scene takes its compact form at that moment. Inside a home's
 reach a hairline ghost shows where it will land and the layout previews its
-response (the editor widens for the dock, the column reopens for expanded).
+response (the inspector widens for the dock, the column reopens for expanded).
 Near the dock slot the position blends toward alignment, up to 55% while
 held, so the magnet is felt but the hand stays in charge. On release inside
 reach it springs to the home (position k 190 · c 26, damping 0.94; size

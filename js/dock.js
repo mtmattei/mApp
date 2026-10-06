@@ -33,10 +33,11 @@ export function createDock(els, api) {
   function homes() {
     const s = shell.getBoundingClientRect();
     const sl = slot.getBoundingClientRect();
-    const w = num('--dock-w'), h = num('--dock-h'), gap = num('--dock-gap'), insp = num('--inspector-w');
+    const w = num('--dock-w'), h = num('--dock-h'), gap = num('--dock-gap');
     return {
       expanded: { x: sl.left - s.left, y: sl.top - s.top, w: sl.width, h: sl.height, reach: 0 },
-      docked: { x: s.width - insp - gap - w, y: s.height - gap - h, w, h, reach: 210 },
+      // the dock slot: the bottom-right corner, over the inspector, which takes the column's width when the viewer is docked
+      docked: { x: s.width - gap - w, y: s.height - gap - h, w, h, reach: 210 },
       bounds: { w: s.width, h: s.height },
     };
   }
@@ -129,7 +130,7 @@ export function createDock(els, api) {
       // no home in reach: the holder you lifted it from stays drawn, so there is always a place it belongs
       ghost.classList.toggle('holder', !home);
       showGhost(home ? H[home] : H[drag.origin]);
-      // the layout answers before the drop: the scene and the columns take the destination's shape
+      // the layout answers before the drop: the scene and the columns take the destination's shape (the inspector widens for the dock)
       api.setMode(home || drag.origin);
       // homes moved with the grid: refresh the ghost after the layout settles
       requestAnimationFrame(() => { if (drag) showGhost(homes()[preview || drag.origin]); });
