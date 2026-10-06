@@ -427,6 +427,12 @@ kbd {
 .inspector .eyebrow .glyph { width: 12px; height: 12px; }
 .inspector .summary { color: var(--ink-2); margin: var(--s2) 0 0; max-width: 42ch; }
 .inspector .quiet { color: var(--ink-3); margin: var(--s2) 0 0; }
+.inspector .figure { margin: var(--s3) 0 0; }
+.inspector .figure [data-hairline] {
+  --hairline-plate: var(--paper); --hairline-hi: var(--ink); --hairline-edge: var(--ink-3); --hairline-mid: var(--rule); --hairline-lo: var(--rule-2);
+  border: 1px solid var(--rule-2); border-radius: var(--radius); cursor: crosshair;
+}
+.inspector .figure-read { font-size: var(--fs-11); color: var(--ink-3); text-align: right; padding: 4px 2px 0; font-variant-numeric: tabular-nums; min-height: 16px; }
 .inspector .source-row { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; margin: var(--s3) 0 0; }
 .inspector .src-link { background: none; border: 0; padding: 0; cursor: pointer; color: var(--focus); font: var(--fs-11) var(--mono); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--focus) 40%, transparent); text-underline-offset: 3px; text-align: left; }
 .inspector .src-link:hover { text-decoration-color: var(--focus); }

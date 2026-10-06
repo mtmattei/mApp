@@ -11,6 +11,16 @@ The sample app is **Orderly**, a five-screen Uno Platform ordering app
 described by a hand-authored graph. No repository analysis yet; the point of
 this version is to validate the interaction before investing in extraction.
 
+<p align="center"><img src="figures/orbit-rest.png" width="420" alt="A screen taken apart into four plates: routes, view model, states and UI"></p>
+
+The figure above is the tool's own thumbnail, drawn as a [Hairline](https://github.com/lucasmarkes/hairline)
+figure: an app screen taken apart into the four layers this inspector reads,
+routes at the bottom, then the view model, the states, and the UI on top.
+Open [`figures/hairline-orbit.html`](figures/hairline-orbit.html) and move
+the pointer: across opens the gap, down picks a layer. Inside the app it sits
+at the top of the inspector's application view, and clicking a layer there
+picks the matching lens.
+
 ![Checkout, behaviour lens](tests/screenshots/04-checkout-behavior.png)
 
 ## Run it
@@ -66,10 +76,23 @@ graph/
   orderly.graph.json        the sample: 73 nodes, 118 edges, 11 source excerpts
 scripts/validate_graph.py   integrity checks (stdlib only)
 tests/smoke.mjs             Playwright journey test, writes tests/screenshots/
+figures/
+  orbit.js, board.js        the two Hairline figures (source)
+  hairline-*.html           self-contained pages built by the hairline-create skill
+  *-look.png                the skill's eight-picture look sheets, kept as evidence
+js/vendor/hairline-kernel.js  the Hairline engine (MIT), unchanged, for the in-app figure
 SPEC.md                     architecture, design, interaction and spec-graph briefs
 ```
 
 ## Interaction model
+
+<p align="center"><img src="figures/board-rest.png" width="360" alt="Five screens as keys on a board, one row per feature; the entry key is half pressed"></p>
+
+The second figure, [`figures/hairline-board.html`](figures/hairline-board.html),
+is the application level as an object: the five screens are keys, one row
+per feature. The key under the pointer sinks and the screens it navigates to
+follow it down, a hop less each. The entry screen carries the homing bar.
+
 
 | Level | What you see |
 |------|------|
@@ -128,6 +151,22 @@ npm i -D playwright            # once; or point PLAYWRIGHT_MODULE at a global in
 npm run serve                  # in one terminal
 npm test                       # in another: 44 checks across the three journeys
 ```
+
+## Figures
+
+The two illustrations are made with Lucas Marques's `hairline-create` skill
+from the [hairline](https://github.com/lucasmarkes/hairline) repository, on
+its ten rules: one stroke in four weights, rounded solids, no words inside
+the drawing, hit tests against the rest pose. To rebuild or check them:
+
+```sh
+node <hairline>/skills/hairline-create/build.mjs figures/orbit.js
+node <hairline>/skills/hairline-create/look.mjs figures/orbit.js --answer 66,80,33 --edge 0,0,2.4 --edge 132,96,104.4
+node <hairline>/skills/hairline-create/look.mjs figures/board.js --answer 66,33,11 --edge=-7,-7,-9 --edge 95,73,-9
+```
+
+The kernel is vendored under `js/vendor/` (MIT, unchanged) so the orbit
+figure can run inside the inspector.
 
 ## Deliberately out of scope
 

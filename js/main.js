@@ -82,6 +82,7 @@ async function boot() {
     hover: (id) => store.dispatch((s) => ({ ...s, hoverId: id })),
     openSource: (n) => store.dispatch((s) => ({ ...s, editor: { fileId: n.source.file, line: n.source.line } })),
     openSourceRef: (ref) => store.dispatch((s) => ({ ...s, editor: { fileId: ref.file, line: ref.line } })),
+    setLens: (lens) => setLens(lens),
   };
 
   // ---------- render ----------

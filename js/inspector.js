@@ -3,6 +3,9 @@
 
 import * as G from './graph.js';
 import { glyph } from './icons.js';
+import { mountFigure } from './figure.js';
+
+let figureHandle = null;
 
 const h = (tag, cls, text) => {
   const el = document.createElement(tag);
@@ -32,6 +35,7 @@ const PLURAL = {
 
 export function renderInspector(root, state, actions) {
   const g = state.graph;
+  if (figureHandle) { figureHandle.destroy(); figureHandle = null; }
   root.innerHTML = '';
   if (!state.focusId) return renderApplication(root, g, state, actions);
   const n = G.node(g, state.focusId);
@@ -149,6 +153,10 @@ function renderApplication(root, g, state, actions) {
   eyebrow.appendChild(h('span', null, 'Application'));
   root.appendChild(eyebrow);
   root.appendChild(h('h2', null, r.name));
+  const fig = h('div', 'figure');
+  fig.title = 'A screen taken apart the way this inspector reads it. Move across to open the gap, down to pick a layer, click to choose that lens.';
+  root.appendChild(fig);
+  figureHandle = mountFigure(fig, 'orbit', { intensity: 0.5, onPick: (lens) => actions.setLens?.(lens) });
   if (r.description) root.appendChild(h('p', 'summary', r.description));
   const entry = G.node(g, r.entry);
   if (entry) {

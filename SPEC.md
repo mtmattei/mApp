@@ -155,6 +155,13 @@ stand in for node icons, in two fidelities: wireframe, and the sample app's
 own UI (content and accent come from the graph, never from the inspector's
 palette).
 
+Illustrations (v0.1.2): two Hairline figures (lucasmarkes/hairline, the
+hairline-create skill). `orbit` is the Exploded pattern applied to App Orbit's
+own layers and lives at the top of the inspector's application view, where
+picking a layer selects the lens. `board` is the Keyboard pattern over the
+application map, used in the README. Both passed the skill's validator and
+look (frame, read-out, console, flicker) in both themes.
+
 Craft pass (v0.1.1): one 12px SVG icon set at a single stroke; five type
 sizes (11, 12.5, 13, 15, 20); one control height (28); shadow only on focal
 cards (screen, view model, detail); the entity name appears once (breadcrumb)

@@ -32,6 +32,26 @@ const crumb = () => page.locator('#breadcrumb').innerText();
 const shot = (name) => page.screenshot({ path: `${outDir}${name}.png` });
 const settle = () => page.waitForTimeout(500);
 
+// ---- 0. The figure in the inspector ----
+await page.waitForTimeout(800);
+check((await page.locator('#inspector .figure svg').count()) === 1, 'the orbit figure mounts in the application view');
+check((await page.locator('#inspector .figure-read').innerText()) === 'rest', 'its read-out says rest');
+{
+  const box = await page.locator('#inspector .figure [data-hairline]').boundingBox();
+  await page.mouse.move(box.x + box.width * 0.55, box.y + box.height * 0.78);
+  await page.waitForTimeout(900);
+  const read = await page.locator('#inspector .figure-read').innerText();
+  check(/· (ui|states|behavior|routes) ·/.test(read), `the figure names the layer under the pointer (${read})`);
+  await page.mouse.click(box.x + box.width * 0.55, box.y + box.height * 0.78);
+  await page.waitForTimeout(300);
+  const lens = (await state()).lens;
+  const expected = { ui: 'structure', states: 'states', behavior: 'behavior', routes: 'navigation' }[read.match(/· (\w+) ·/)[1]];
+  check(lens === expected, `clicking the layer picks its lens (${lens})`);
+  await page.mouse.move(10, 400);
+  await page.keyboard.press('1');
+  await settle();
+}
+
 // ---- 1. Orientation ----
 check((await page.locator('.card[data-type="feature"]').count()) === 3, 'application level shows 3 features');
 check((await page.locator('.plate-screen').count()) === 5, 'application level shows 5 screens');
