@@ -11,13 +11,23 @@ The sample app is **Orderly**, a five-screen Uno Platform ordering app
 described by a hand-authored graph. No repository analysis yet; the point of
 this version is to validate the interaction before investing in extraction.
 
-<p align="center"><img src="figures/orbit-rest.png" width="420" alt="A screen taken apart into four plates: routes, view model, states and UI"></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="figures/orbit-exploded-dark.png">
+    <img src="figures/orbit-exploded.png" width="640" alt="Exploded view of one screen: routes at the base, then the view model, the states, and the UI on top, each labelled with the relationships that lens reads">
+  </picture>
+</p>
 
-The figure above is the tool's own thumbnail, drawn as a [Hairline](https://github.com/lucasmarkes/hairline)
-figure: an app screen taken apart into the four layers this inspector reads,
-routes at the bottom, then the view model, the states, and the UI on top.
-Open [`figures/hairline-orbit.html`](figures/hairline-orbit.html) and move
-the pointer: across opens the gap, down picks a layer. Inside the app it sits
+The figure above is one screen taken apart into the four layers this
+inspector reads: routes at the bottom, then the view model, the states, and
+the UI on top. The labels name the relationships each lens follows. It is an
+exploded axonometric in the grammar of the
+[diagram-design](https://github.com/cathrynlavery/diagram-design) skill,
+built from [`figures/exploded.py`](figures/exploded.py) and skinned with App
+Orbit's own tokens. The same object also exists as an interactive
+[Hairline](https://github.com/lucasmarkes/hairline) figure,
+[`figures/hairline-orbit.html`](figures/hairline-orbit.html): move the
+pointer across to open the gap, down to pick a layer. Inside the app it sits
 at the top of the inspector's application view, and clicking a layer there
 picks the matching lens.
 
@@ -77,6 +87,9 @@ graph/
 scripts/validate_graph.py   integrity checks (stdlib only)
 tests/smoke.mjs             Playwright journey test, writes tests/screenshots/
 figures/
+  exploded.py               builds orbit-exploded*.html, the README's exploded view
+  orbit-exploded*.html/png  the exploded axonometric, light and dark, verified by diagram-design
+  vendor/axonometry.py      diagram-design's 2:1 dimetric projection (MIT), unchanged
   orbit.js, board.js        the two Hairline figures (source)
   hairline-*.html           self-contained pages built by the hairline-create skill
   *-look.png                the skill's eight-picture look sheets, kept as evidence
@@ -155,7 +168,22 @@ npm test                       # in another: 44 checks across the three journeys
 
 ## Figures
 
-The two illustrations are made with Lucas Marques's `hairline-create` skill
+The README's exploded view follows Cathryn Lavery's `diagram-design` skill
+([cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design),
+MIT): its exploded-axonometric grammar is one object, parts pulled apart
+along one axis, shaded faces, one label column with straight leaders, one
+focal part, no arrows. The projection module is vendored unchanged under
+`figures/vendor/`; the figure is generated, so nothing is placed by hand, and
+the skill's verifier recomputes every silhouette from what each part
+declares:
+
+```sh
+python3 figures/exploded.py
+python3 <diagram-design>/scripts/verify-exploded.py figures/orbit-exploded.html figures/orbit-exploded-dark.html
+python3 ~/.claude/skills/diagram-design/scripts/self_check.py figures/orbit-exploded.html
+```
+
+The interactive illustrations are made with Lucas Marques's `hairline-create` skill
 from the [hairline](https://github.com/lucasmarkes/hairline) repository, on
 its ten rules: one stroke in four weights, rounded solids, no words inside
 the drawing, hit tests against the rest pose. To rebuild or check them:
