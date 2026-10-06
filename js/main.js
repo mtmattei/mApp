@@ -114,7 +114,8 @@ async function boot() {
     }
     if (s.editor !== prev.editor || s.focusId !== prev.focusId || s.sceneVersion !== prev.sceneVersion) editor.render(s);
     if (s.searchOpen !== prev.searchOpen && !s.searchOpen) closeSearch();
-    savePrefs(s);
+    if (s.lens !== prev.lens || s.mode !== prev.mode || s.view !== prev.view || s.reducedMotion !== prev.reducedMotion || s.fidelity !== prev.fidelity || s.workspaceRoot !== prev.workspaceRoot) savePrefs(s);
+    if (s.focusId !== prev.focusId) history.replaceState(null, '', s.focusId ? `#${s.focusId}` : location.pathname + location.search);
   });
 
   function renderBreadcrumb(s) {
@@ -208,10 +209,18 @@ async function boot() {
       case 'f': case 'F': toggleView(); break;
       case 'd': case 'D': toggleMode(); break;
       case 'w': case 'W': toggleFidelity(); break;
-      case 'ArrowLeft': if (e.altKey) { e.preventDefault(); back(); } else if (inViewer && store.get().view === 'orbit') { e.preventDefault(); scene.nudge(-6, 0); } break;
-      case 'ArrowRight': if (inViewer && store.get().view === 'orbit') { e.preventDefault(); scene.nudge(6, 0); } break;
-      case 'ArrowUp': if (inViewer && store.get().view === 'orbit') { e.preventDefault(); scene.nudge(0, 4); } break;
-      case 'ArrowDown': if (inViewer && store.get().view === 'orbit') { e.preventDefault(); scene.nudge(0, -4); } break;
+      case 'ArrowLeft': case 'ArrowRight': case 'ArrowUp': case 'ArrowDown': {
+        const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+        const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+        if (e.altKey && dx < 0) { e.preventDefault(); back(); break; }
+        if (e.shiftKey) {
+          const id = store.get().cursorId || store.get().focusId;
+          if (id && scene.nudgeCard(id, dx * 8, dy * 8)) e.preventDefault();
+          break;
+        }
+        if (inViewer && store.get().view === 'orbit') { e.preventDefault(); scene.nudge(dx * 6, -dy * 4); }
+        break;
+      }
       default: return;
     }
   });
@@ -219,8 +228,11 @@ async function boot() {
   // expose for tests
   window.appOrbit = { store, focus, zoomOut, back, setLens, toggleView, toggleMode, toggleFidelity, scene, graph, layout: () => layout(store.get()) };
 
-  // first paint
-  store.dispatch((s) => ({ ...s, sceneVersion: 1 }));
+  // first paint, honouring a #entity-id deep link
+  const hashId = decodeURIComponent(location.hash.slice(1));
+  if (hashId && G.node(graph, hashId)) store.dispatch((s) => ({ ...s, focusId: hashId, trail: [hashId], editor: G.node(graph, hashId).source ? { fileId: G.node(graph, hashId).source.file, line: G.node(graph, hashId).source.line } : s.editor, sceneVersion: 1 }));
+  else store.dispatch((s) => ({ ...s, sceneVersion: 1 }));
+  window.addEventListener('hashchange', () => { const id = decodeURIComponent(location.hash.slice(1)); if (id && G.node(graph, id) && id !== store.get().focusId) focus(id); });
   scene.resetCamera(store.get().view);
 }
 

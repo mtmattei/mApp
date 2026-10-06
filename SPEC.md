@@ -262,6 +262,8 @@ hidden behind a toggle; viewer + inspector. Docked panel never below 320×200.
 | drag on empty scene | orbit (clamped) |
 | drag on a card | move it; offset remembered per (level, focus, lens, view, mode) in this browser; *reset layout* clears |
 | `W` | wireframe ↔ UI preview fidelity |
+| `Shift`+arrows | move the focused card 8 scene px; double-click snaps it back |
+| `#entity-id` in the URL | restores that focus on load; focus changes update the hash |
 | `+` / `Enter` | zoom in to hovered/cursor card |
 | `−` / `Backspace` | zoom out to the parent context |
 | `Alt+←` / back button | back along the trail (after following a relationship) |

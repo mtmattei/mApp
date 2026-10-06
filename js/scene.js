@@ -97,6 +97,7 @@ export function createScene(els, handlers) {
       world.appendChild(el);
     }
     handlers.onLayoutChange?.(!!offsets[layoutId(state, layout)]);
+    buildLinks();
     if (prevView !== state.view) setCamera({ ...DEFAULT_CAM[state.view] }, true);
     computeFit();
     world.classList.remove('enter');
@@ -266,74 +267,117 @@ export function createScene(els, handlers) {
   }
 
   // ---------- links ----------
-  function drawLinks() {
-    if (!current) return;
-    const svgRect = svg.getBoundingClientRect();
+  // Links are resolved once per render (anchor elements + SVG nodes); each frame only reads the
+  // rects the links need and updates attributes in place.
+  let linkNodes = [];
+  const NS = 'http://www.w3.org/2000/svg';
+  const linkEnds = (l) => [l.from.split(':')[0].split('/').pop().split('#')[0], l.to.split(':')[0].split('/').pop().split('#')[0]];
+  function buildLinks() {
     const anchors = new Map();
     for (const a of world.querySelectorAll('[data-anchor]')) anchors.set(a.dataset.anchor, a);
-    const hover = current.state.hoverId;
     const frag = document.createDocumentFragment();
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-    frag.appendChild(defs);
+    linkNodes = [];
     for (const l of current.layout.links) {
       const a = anchors.get(l.from), b = anchors.get(l.to);
       if (!a || !b) continue;
-      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-      const x1 = ra.left - svgRect.left, y1 = ra.top - svgRect.top;
-      const x2 = rb.left - svgRect.left, y2 = rb.top - svgRect.top;
-      const horizontal = Math.abs(x2 - x1) >= Math.abs(y2 - y1) * 0.8;
-      const d = horizontal
-        ? `M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`
-        : `M${x1},${y1} C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2}`;
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', d);
-      const idA = l.from.split(':')[0].split('/').pop().split('#')[0];
-      const idB = l.to.split(':')[0].split('/').pop().split('#')[0];
-      const hot = hover && (idA === hover || idB === hover || l.id === hover);
-      path.setAttribute('class', `${l.relation}${l.inferred ? ' inferred' : ''}${hot ? ' hot' : hover ? ' dim' : ''}`);
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('class', `${l.relation}${l.inferred ? ' inferred' : ''}`);
       frag.appendChild(path);
+      let tri = null, text = null;
       if (l.arrow) {
-        const ang = horizontal ? (x2 >= x1 ? 0 : Math.PI) : (y2 >= y1 ? Math.PI / 2 : -Math.PI / 2);
-        const tri = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        const s = 5;
-        const pts = [[0, 0], [-s * 1.8, -s * 0.9], [-s * 1.8, s * 0.9]].map(([px, py]) => {
-          const rx = px * Math.cos(ang) - py * Math.sin(ang), ry = px * Math.sin(ang) + py * Math.cos(ang);
-          return `${x2 + rx},${y2 + ry}`;
-        });
-        tri.setAttribute('points', pts.join(' '));
-        tri.setAttribute('class', `arrow ${arrowClass(l.relation)}${hover && !hot ? ' dim' : ''}`);
-        if (hover && !hot) tri.style.opacity = '.25';
+        tri = document.createElementNS(NS, 'polygon');
+        tri.setAttribute('class', `arrow ${arrowClass(l.relation)}`);
         frag.appendChild(tri);
       }
       if (l.label) {
-        const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        const tt = l.labelT ?? 0.5;
-        const cp = horizontal ? [[(x1 + x2) / 2, y1], [(x1 + x2) / 2, y2]] : [[x1, (y1 + y2) / 2], [x2, (y1 + y2) / 2]];
-        const bz = (a, b, c2, d) => (1 - tt) ** 3 * a + 3 * (1 - tt) ** 2 * tt * b + 3 * (1 - tt) * tt ** 2 * c2 + tt ** 3 * d;
-        t.setAttribute('x', bz(x1, cp[0][0], cp[1][0], x2));
-        t.setAttribute('y', bz(y1, cp[0][1], cp[1][1], y2) + (l.labelDy ?? -5));
-        t.setAttribute('text-anchor', 'middle');
-        t.setAttribute('class', `label${l.inferred ? ' inferred' : ''}`);
-        if (hover && !hot) t.style.opacity = '.3';
-        t.textContent = l.inferred ? `${l.label} · inferred` : l.label;
-        frag.appendChild(t);
+        text = document.createElementNS(NS, 'text');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('class', `label${l.inferred ? ' inferred' : ''}`);
+        text.textContent = l.inferred ? `${l.label} · inferred` : l.label;
+        frag.appendChild(text);
       }
+      const [idA, idB] = linkEnds(l);
+      linkNodes.push({ l, a, b, path, tri, text, idA, idB });
     }
     svg.replaceChildren(frag);
+  }
+  function drawLinks() {
+    if (!current) return;
+    const svgRect = svg.getBoundingClientRect();
+    const hover = current.state.hoverId;
+    for (const n of linkNodes) {
+      const { l, path, tri, text } = n;
+      const ra = n.a.getBoundingClientRect(), rb = n.b.getBoundingClientRect();
+      const x1 = ra.left - svgRect.left, y1 = ra.top - svgRect.top;
+      const x2 = rb.left - svgRect.left, y2 = rb.top - svgRect.top;
+      const horizontal = Math.abs(x2 - x1) >= Math.abs(y2 - y1) * 0.8;
+      path.setAttribute('d', horizontal
+        ? `M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}`
+        : `M${x1},${y1} C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2}`);
+      const hot = !!hover && (n.idA === hover || n.idB === hover || l.id === hover);
+      const dim = !!hover && !hot;
+      path.classList.toggle('hot', hot);
+      path.classList.toggle('dim', dim);
+      if (tri) {
+        const ang = horizontal ? (x2 >= x1 ? 0 : Math.PI) : (y2 >= y1 ? Math.PI / 2 : -Math.PI / 2);
+        const c = Math.cos(ang), sn = Math.sin(ang), s = 5;
+        const pts = [[0, 0], [-s * 1.8, -s * 0.9], [-s * 1.8, s * 0.9]].map(([px, py]) => `${x2 + px * c - py * sn},${y2 + px * sn + py * c}`);
+        tri.setAttribute('points', pts.join(' '));
+        tri.style.opacity = dim ? '.25' : '';
+      }
+      if (text) {
+        const tt = l.labelT ?? 0.5;
+        const cp = horizontal ? [[(x1 + x2) / 2, y1], [(x1 + x2) / 2, y2]] : [[x1, (y1 + y2) / 2], [x2, (y1 + y2) / 2]];
+        const bz = (p0, p1, p2, p3) => (1 - tt) ** 3 * p0 + 3 * (1 - tt) ** 2 * tt * p1 + 3 * (1 - tt) * tt ** 2 * p2 + tt ** 3 * p3;
+        text.setAttribute('x', bz(x1, cp[0][0], cp[1][0], x2));
+        text.setAttribute('y', bz(y1, cp[0][1], cp[1][1], y2) + (l.labelDy ?? -5));
+        text.style.opacity = dim ? '.3' : '';
+      }
+    }
   }
   const arrowClass = (rel) => ({ route: 'route', 'navigates-to': 'route', 'binds-to': 'vm', invokes: 'vm', 'depends-on': 'vm', exposes: 'vm', 'uses-viewmodel': 'vm', 'has-state': 'state', 'transitions-to': 'state', 'instance-of': 'comp', contains: 'comp' }[rel] || '');
 
   function updateHighlights(state) {
-    for (const el of world.querySelectorAll('.card')) {
-      el.classList.toggle('focus', el.dataset.id === state.focusId && !el.dataset.key.includes('#'));
-      el.classList.toggle('hover', !!state.hoverId && el.dataset.id === state.hoverId && el.dataset.id !== state.focusId);
-      el.classList.toggle('cursor', !!state.cursorId && el.dataset.id === state.cursorId && state.cursorId !== state.focusId);
+    const { focusId, hoverId, cursorId } = state;
+    for (const { el } of cardEls.values()) {
+      const id = el.dataset.id;
+      el.classList.toggle('focus', id === focusId && !el.dataset.key.includes('#'));
+      el.classList.toggle('hover', !!hoverId && id === hoverId && id !== focusId);
+      el.classList.toggle('cursor', !!cursorId && id === cursorId && cursorId !== focusId);
     }
-    for (const el of world.querySelectorAll('.region, .member, .plate-screen')) {
-      el.classList.toggle('hover', !!state.hoverId && el.dataset.id === state.hoverId);
-      if (el.classList.contains('member')) el.classList.toggle('focus', el.dataset.id === state.focusId);
-    }
+    for (const el of world.querySelectorAll('.region.hover, .member.hover, .plate-screen.hover')) el.classList.remove('hover');
+    if (hoverId) for (const el of world.querySelectorAll(`.region[data-id="${CSS.escape(hoverId)}"], .member[data-id="${CSS.escape(hoverId)}"], .plate-screen[data-id="${CSS.escape(hoverId)}"]`)) el.classList.add('hover');
+    for (const el of world.querySelectorAll('.member.focus')) el.classList.remove('focus');
+    if (focusId) for (const el of world.querySelectorAll(`.member[data-id="${CSS.escape(focusId)}"]`)) el.classList.add('focus');
     drawLinks();
+  }
+
+  /** Move a card by a scene-unit delta (keyboard nudge). */
+  function nudgeCard(id, dx, dy) {
+    if (!current) return false;
+    const entry = [...cardEls.values()].find((e) => e.el.dataset.id === id && !e.card.key.includes('#')) || [...cardEls.values()].find((e) => e.el.dataset.id === id);
+    if (!entry) return false;
+    const lid = layoutId(current.state, current.layout);
+    offsets[lid] = offsets[lid] || {};
+    const o = offsets[lid][entry.card.key] || { x: 0, y: 0 };
+    offsets[lid][entry.card.key] = { x: o.x + dx, y: o.y + dy };
+    placeCard(entry.el, entry.card);
+    drawLinks();
+    saveOffsets(offsets);
+    handlers.onLayoutChange?.(true);
+    return true;
+  }
+  function resetCard(key) {
+    if (!current) return;
+    const lid = layoutId(current.state, current.layout);
+    if (!offsets[lid]?.[key]) return;
+    delete offsets[lid][key];
+    if (Object.keys(offsets[lid]).length === 0) delete offsets[lid];
+    const entry = cardEls.get(key);
+    if (entry) placeCard(entry.el, entry.card);
+    drawLinks();
+    saveOffsets(offsets);
+    handlers.onLayoutChange?.(!!offsets[lid]);
   }
 
   // ---------- input ----------
@@ -384,6 +428,10 @@ export function createScene(els, handlers) {
     e.stopPropagation();
     handlers.onFocus(hit.dataset.id);
   });
+  world.addEventListener('dblclick', (e) => {
+    const cardEl = e.target.closest('.card');
+    if (cardEl) resetCard(cardEl.dataset.key);
+  });
   world.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const hit = e.target.closest('[data-id]');
@@ -428,7 +476,7 @@ export function createScene(els, handlers) {
 
   new ResizeObserver(() => { if (current) { computeFit(); apply(); } }).observe(stage);
 
-  return { render, setCamera, getCamera, resetCamera, resetOffsets, updateHighlights, drawLinks, nudge: (dy, dp) => setCamera({ yaw: target.yaw + dy, pitch: target.pitch + dp }) };
+  return { render, setCamera, getCamera, resetCamera, resetOffsets, nudgeCard, updateHighlights, drawLinks, nudge: (dy, dp) => setCamera({ yaw: target.yaw + dy, pitch: target.pitch + dp }) };
 }
 
 export { FRAME };

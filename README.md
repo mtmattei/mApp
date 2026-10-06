@@ -96,7 +96,10 @@ recognisable.
   are kept.
 - Reduced motion is honoured from the OS and can be toggled.
 - Every card is keyboard reachable: `Tab`, `Enter` to zoom in, `−` to zoom
-  out, `Alt+←` to go back along your trail. `?` lists the rest.
+  out, `Alt+←` to go back along your trail, `Shift`+arrows to move the
+  focused card. Double-click a moved card to snap it back. `?` lists the rest.
+- The URL hash holds the focused entity (`#prop.cart.can-place-order`), so a
+  view can be reloaded or shared.
 
 ## The graph
 
