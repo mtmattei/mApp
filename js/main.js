@@ -8,6 +8,7 @@ import { renderInspector } from './inspector.js';
 import { createEditor } from './editor.js';
 import { glyph } from './icons.js';
 import { setFidelity } from './preview.js';
+import { createDock } from './dock.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -72,7 +73,13 @@ async function boot() {
   }
   const setLens = (lens) => store.dispatch((s) => (s.lens === lens ? s : { ...s, lens, sceneVersion: s.sceneVersion + 1 }));
   const toggleView = () => store.dispatch((s) => ({ ...s, view: s.view === 'orbit' ? 'flat' : 'orbit', sceneVersion: s.sceneVersion + 1 }));
-  const toggleMode = () => store.dispatch((s) => ({ ...s, mode: s.mode === 'docked' ? 'expanded' : 'docked', sceneVersion: s.sceneVersion + 1 }));
+  const setMode = (mode) => store.dispatch((s) => (s.mode === mode ? s : { ...s, mode, sceneVersion: s.sceneVersion + 1 }));
+  const dock = createDock(
+    { shell: document.querySelector('.shell'), viewer: $('viewer'), head: $('viewer-head'), slot: $('viewer-slot'), ghost: $('dock-ghost') },
+    { getMode: () => store.get().mode, setMode, reducedMotion: () => store.get().reducedMotion,
+      setCarrying: (on) => store.dispatch((s) => (s.carrying === on ? s : { ...s, carrying: on, sceneVersion: s.sceneVersion + 1 })) },
+  );
+  const toggleMode = () => dock.toggle();
   const toggleMotion = () => store.dispatch((s) => ({ ...s, reducedMotion: !s.reducedMotion }));
   const toggleFidelity = () => store.dispatch((s) => ({ ...s, fidelity: s.fidelity === 'ui' ? 'wire' : 'ui', sceneVersion: s.sceneVersion + 1 }));
 
@@ -101,6 +108,7 @@ async function boot() {
     for (const b of $('lens-tabs').querySelectorAll('[data-lens]')) b.setAttribute('aria-selected', String(b.dataset.lens === s.lens));
 
     if (s.sceneVersion !== lastScene || s.mode !== lastMode || s.view !== lastView || s.lens !== lastLens) {
+      document.body.dataset.carrying = String(s.carrying);
       const l = layout(s);
       scene.render(s, l);
       $('viewer-note').textContent = l.note || '';
@@ -185,6 +193,7 @@ async function boot() {
   $('toggle-view').addEventListener('click', toggleView);
   $('toggle-mode').addEventListener('click', toggleMode);
   $('viewer-expand').addEventListener('click', toggleMode);
+  $('viewer-dock').addEventListener('click', toggleMode);
   $('toggle-motion').addEventListener('click', toggleMotion);
   $('toggle-fidelity').addEventListener('click', toggleFidelity);
   $('layout-reset').addEventListener('click', () => scene.resetOffsets());
@@ -227,7 +236,7 @@ async function boot() {
   });
 
   // expose for tests
-  window.appOrbit = { store, focus, zoomOut, back, setLens, toggleView, toggleMode, toggleFidelity, scene, graph, layout: () => layout(store.get()) };
+  window.appOrbit = { store, focus, zoomOut, back, setLens, toggleView, toggleMode, toggleFidelity, dock, scene, graph, layout: () => layout(store.get()) };
 
   // first paint, honouring a #entity-id deep link
   const hashId = decodeURIComponent(location.hash.slice(1));

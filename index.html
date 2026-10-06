@@ -44,12 +44,16 @@
     <div class="editor-code" id="editor-code" aria-label="Source"></div>
   </aside>
 
+  <div class="viewer-slot" id="viewer-slot" aria-hidden="true"></div>
+  <div class="dock-ghost" id="dock-ghost" aria-hidden="true"></div>
   <section class="viewer" id="viewer" aria-label="Orbital viewer" tabindex="0">
-    <div class="viewer-head" id="viewer-head">
+    <div class="viewer-head" id="viewer-head" title="Drag to dock or undock">
+      <span class="viewer-grip" aria-hidden="true"></span>
       <button class="viewer-back" id="viewer-back" title="Back along your trail (Alt+←)" aria-label="Back">←</button>
       <span class="viewer-title" id="viewer-title"></span>
       <span class="viewer-note" id="viewer-note"></span>
       <button class="viewer-expand" id="viewer-expand" title="Expand (D)" aria-label="Expand viewer">⤢</button>
+      <button class="viewer-dock" id="viewer-dock" title="Dock (D)" aria-label="Dock viewer">⤡</button>
     </div>
     <div class="stage" id="stage">
       <div class="world" id="world"></div>

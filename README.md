@@ -115,8 +115,9 @@ recognisable.
 - Drag a card to move it. Positions are remembered per view in this browser;
   *reset layout* puts them back. Drag the empty canvas to orbit.
 - `F` toggles the flat view: same cards, same connectors, no rotation.
-- `D` docks the viewer into a small panel over the editor. Focus and camera
-  are kept.
+- Drag the viewer by its head bar to dock it: it lifts, shows where it will
+  land, pulls into the slot and settles. Drag it out again to expand. `D`
+  does the same along the same path. Focus and camera are kept.
 - Reduced motion is honoured from the OS and can be toggled.
 - Every card is keyboard reachable: `Tab`, `Enter` to zoom in, `−` to zoom
   out, `Alt+←` to go back along your trail, `Shift`+arrows to move the

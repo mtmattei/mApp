@@ -279,9 +279,25 @@ hidden behind a toggle; viewer + inspector. Docked panel never below 320×200.
 | `0` | reset camera |
 | `1`–`4` | lens Structure / Navigation / Behavior / States |
 | `F` | flat ↔ orbit |
-| `D` | docked ↔ expanded |
+| `D` | docked ↔ expanded, along the docking path |
+| drag the viewer head | pick the viewer up; carry it to the dock slot or the main column; release to settle |
 | `/` | search |
 | `?` | shortcut sheet |
+
+### Docking (v0.1.3)
+
+The viewer has two homes, the main column and the dock slot, and never floats
+free. Picking it up by its head bar lifts it: the shadow deepens, it scales
+to carry size about the grab point so the point under the pointer never
+moves, and the scene takes its compact form at that moment. Inside a home's
+reach a hairline ghost shows where it will land and the layout previews its
+response (the editor widens for the dock, the column reopens for expanded).
+Near the dock slot the position blends toward alignment, up to 55% while
+held, so the magnet is felt but the hand stays in charge. On release inside
+reach it springs to the home (position k 190 · c 26, damping 0.94; size
+k 240 · c 30) and ends with a 1.2% settle pulse over 180 ms; outside reach it
+flies back to where it came from. `D` and the dock button follow the same
+path. Reduced motion keeps the ghosts and resolves every change in one step.
 
 ### Empty / loading / error states
 

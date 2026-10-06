@@ -42,11 +42,14 @@ function link(from, to, relation, label = '', extra = {}) {
   return { from, to, relation, label, ...extra };
 }
 const spread = (i, n, step) => (i - (n - 1) / 2) * step;
+/** A screen's feature as a subtitle, unless it would only repeat the screen's name. */
+const featureSub = (g, screen) => { const f = G.featureOfScreen(g, screen.id)?.name || ''; return f === screen.name ? '' : f; };
 
 export function layout(state) {
   const { graph: g, focusId, lens, view, mode } = state;
   const flat = view === 'flat';
-  const docked = mode === 'docked';
+  // a lifted viewer takes its compact form the moment it is picked up, whatever home it is heading for
+  const docked = mode === 'docked' || !!state.carrying;
   const level = G.levelOf(g, focusId);
   let result;
   switch (level) {
@@ -180,7 +183,7 @@ function layoutFeature(g, featureId, lens, flat, docked) {
     outChips.forEach((c, i) => {
       const key = `${c.route.id}#out`;
       cards.push(card('chip', key, 'screen', rightX + 150, spread(i, outChips.length, CHIP_H + 12), 0, CHIP_W, CHIP_H, {
-        id: c.target.id, title: c.target.name, sub: G.featureOfScreen(g, c.target.id)?.name || '', routeId: c.route.id,
+        id: c.target.id, title: c.target.name, sub: featureSub(g, c.target), routeId: c.route.id,
       }));
       links.push(link(c.fromAnchor, `${key}:l`, 'route', c.origin.edge.label || '', { arrow: true, id: c.route.id }));
     });
@@ -261,7 +264,7 @@ function layoutScreen(g, screenId, lens, flat, docked) {
     outs.forEach((r, i) => {
       const key = `${r.route.id}#out`;
       cards.push(card('chip', key, 'screen', dx, spread(i, outs.length, CHIP_H + 12), 0, chipW, CHIP_H, {
-        id: r.target.id, title: r.target.name, sub: docked ? '' : (r.route.properties?.qualifier ? `clears back stack` : G.featureOfScreen(g, r.target.id)?.name || ''), routeId: r.route.id,
+        id: r.target.id, title: r.target.name, sub: docked ? '' : (r.route.properties?.qualifier ? `clears back stack` : featureSub(g, r.target)), routeId: r.route.id,
       }));
       const fromAnchor = r.origin.instance && !docked ? `${front}/${r.origin.instance.id}:r` : `${front}:r`;
       links.push(link(fromAnchor, `${key}:l`, 'route', docked ? '' : (r.origin.edge.label || ''), { arrow: true, id: r.route.id }));

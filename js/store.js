@@ -37,6 +37,7 @@ export function initialState(graph, prefs) {
     editor: { fileId: null, line: null },
     workspaceRoot: typeof prefs.workspaceRoot === 'string' ? prefs.workspaceRoot : '',
     searchOpen: false,
+    carrying: false,
     sceneVersion: 0,
   };
 }

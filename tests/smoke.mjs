@@ -196,14 +196,46 @@ const transform = await page.locator('#world').evaluate((el) => el.style.transfo
 check(/rotateX\(0deg\) rotateY\(0deg\)/.test(transform), 'flat view has no rotation');
 await shot('09-flat');
 await page.keyboard.press('f');
-await page.keyboard.press('d');
 await settle();
-check((await state()).mode === 'docked', 'D docks the viewer');
-check((await state()).focusId === 'screen.checkout', 'docking keeps the focus');
-const box = await page.locator('#viewer').boundingBox();
-check(box.width < 420 && box.height < 300, 'docked viewer is a small panel');
-await shot('10-docked');
+// ---- docking: pick the viewer up by its head, carry it to the slot, let it settle ----
+{
+  const head = page.locator('#viewer-head');
+  const hb = await head.boundingBox();
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + hb.width / 2 + 12, hb.y + hb.height / 2 + 12, { steps: 3 });
+  await page.waitForTimeout(250);
+  const lifted = await page.evaluate(() => ({ cls: document.getElementById('viewer').className, ghost: document.getElementById('dock-ghost').className, carrying: window.appOrbit.store.get().carrying, w: document.getElementById('viewer').getBoundingClientRect().width }));
+  check(lifted.cls.includes('lifted') && lifted.w < 450, `lifting shrinks the viewer to carry size (${Math.round(lifted.w)}px)`);
+  check(lifted.ghost.includes('holder'), 'the holder it came from stays drawn');
+  check(lifted.carrying === true, 'the scene takes its compact form at pick-up');
+  await shot('10a-lifted');
+  await page.mouse.move(1440 - 320 - 16 - 190, 900 - 16 - 250, { steps: 16 });
+  await page.waitForTimeout(350);
+  const near = await page.evaluate(() => ({ mode: window.appOrbit.store.get().mode, ghost: document.getElementById('dock-ghost').className }));
+  check(near.mode === 'docked', 'approaching the slot previews the docked layout');
+  check(near.ghost.includes('show') && !near.ghost.includes('holder'), 'the slot ghost shows where it will land');
+  await shot('10b-approach');
+  await page.mouse.up();
+  await page.waitForTimeout(1000);
+  const box = await page.locator('#viewer').boundingBox();
+  check((await state()).mode === 'docked' && !(await page.evaluate(() => window.appOrbit.dock.isMoving())), 'release settles the viewer in the dock');
+  check(Math.abs(box.width - 380) < 1 && Math.abs(box.height - 260) < 1, `it settles at the slot's exact size (${Math.round(box.width)}×${Math.round(box.height)})`);
+  check((await state()).focusId === 'screen.checkout', 'docking keeps the focus');
+  await shot('10-docked');
+}
 await page.keyboard.press('d');
+await page.waitForTimeout(120);
+check(await page.evaluate(() => window.appOrbit.dock.isMoving()), 'D flies the viewer back along the same path');
+await page.waitForTimeout(1000);
+check((await state()).mode === 'expanded', 'and it lands expanded');
+await page.locator('#toggle-motion').click();
+await page.keyboard.press('d');
+await page.waitForTimeout(80);
+check(!(await page.evaluate(() => window.appOrbit.dock.isMoving())) && (await state()).mode === 'docked', 'reduced motion: docking resolves in one step');
+await page.keyboard.press('d');
+await page.waitForTimeout(80);
+await page.locator('#toggle-motion').click();
 await settle();
 
 await page.locator('#toggle-motion').click();
