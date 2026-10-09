@@ -67,7 +67,7 @@ public sealed class LayoutResult
     public Bounds Bounds { get; set; }
 }
 
-public static class Frame
+public static class PreviewFrame
 {
     public const string Lg = "lg", Md = "md", Sm = "sm", Xs = "xs";
 
@@ -75,6 +75,9 @@ public static class Frame
     {
         Lg => (220, 392), Md => (150, 267), Sm => (100, 178), Xs => (62, 110), _ => (220, 392),
     };
+
+    /// <summary>The same frame in floats, for the Skia side.</summary>
+    public static (float W, float H) OfF(string size) { var (w, h) = Of(size); return ((float)w, (float)h); }
 }
 
 public static class LayoutEngine
@@ -88,7 +91,7 @@ public static class LayoutEngine
 
     public static (double W, double H) PreviewCardSize(string size)
     {
-        var (w, h) = Frame.Of(size);
+        var (w, h) = PreviewFrame.Of(size);
         return (w + Pad * 2, h + Head + Pad * 2);
     }
 
@@ -163,7 +166,7 @@ public static class LayoutEngine
         var cards = r.Cards; var links = r.Links;
         var features = g.NodesOf(NodeType.Feature);
         const double plateW = 250;
-        var rowH = Frame.Of(Frame.Xs).H + 44;
+        var rowH = PreviewFrame.Of(PreviewFrame.Xs).H + 44;
         var plateOf = new Dictionary<string, string>();
         for (var i = 0; i < features.Count; i++)
         {
@@ -246,7 +249,7 @@ public static class LayoutEngine
         var r = new LayoutResult();
         var cards = r.Cards; var links = r.Links;
         var screens = g.ScreensOfFeature(featureId);
-        var size = docked ? Frame.Sm : Frame.Md;
+        var size = docked ? PreviewFrame.Sm : PreviewFrame.Md;
         var sz = PreviewCardSize(size);
         var step = sz.W + (docked ? 40 : 90);
         var keyOf = new HashSet<string>();
@@ -366,7 +369,7 @@ public static class LayoutEngine
             {
                 var sx = FindCard(cards, s.Id).X;
                 var states = g.StatesOf(s.Id).Take(4).ToList();
-                var tsz = PreviewCardSize(Frame.Xs);
+                var tsz = PreviewCardSize(PreviewFrame.Xs);
                 for (var j = 0; j < states.Count; j++)
                 {
                     var st = states[j];
@@ -374,7 +377,7 @@ public static class LayoutEngine
                     {
                         Kind = "state", Key = $"{st.Id}#thumb", Type = NodeType.State, Id = st.Id,
                         X = sx + Spread(j, states.Count, tsz.W + 6), Y = sz.H / 2 + 40 + tsz.H / 2, Z = flat ? 0 : 40, W = tsz.W, H = tsz.H,
-                        ScreenId = s.Id, Size = Frame.Xs,
+                        ScreenId = s.Id, Size = PreviewFrame.Xs,
                     });
                 }
             }
@@ -387,7 +390,7 @@ public static class LayoutEngine
     {
         var r = new LayoutResult();
         var cards = r.Cards; var links = r.Links;
-        var size = docked ? Frame.Md : Frame.Lg;
+        var size = docked ? PreviewFrame.Md : PreviewFrame.Lg;
         var sz = PreviewCardSize(size);
         var front = screenId;
         cards.Add(new Card
@@ -453,7 +456,7 @@ public static class LayoutEngine
                 if (b != null && !frac.ContainsKey(e.To)) frac[e.To] = b.Y + b.H / 2;
             }
             var others = g.ScreensUsingVm(vm.Id).Where(s => s.Id != screenId).ToList();
-            var (rows, h) = AlignedRows(members, hot, frac, Frame.Of(size).H, others.Count > 0);
+            var (rows, h) = AlignedRows(members, hot, frac, PreviewFrame.Of(size).H, others.Count > 0);
             var key = vm.Id;
             cards.Add(new Card
             {
@@ -491,7 +494,7 @@ public static class LayoutEngine
             foreach (var at in g.InstancesOfScreen(screenId))
                 foreach (var st in g.StatesOf(at.Node.Id)) owned.Add((st, at.Node));
             if (owned.Count == 0) { r.Note = "No declared states for this screen"; return r; }
-            var tsz = PreviewCardSize(Frame.Sm);
+            var tsz = PreviewCardSize(PreviewFrame.Sm);
             const int cols = 2;
             var x0 = sz.W / 2 + 60 + tsz.W / 2;
             var rowsN = (int)Math.Ceiling(owned.Count / (double)cols);
@@ -503,7 +506,7 @@ public static class LayoutEngine
                 {
                     Kind = "state", Key = $"{st.Id}#thumb", Type = NodeType.State, Id = st.Id,
                     X = x0 + col * (tsz.W + 44), Y = Spread(row, rowsN, tsz.H + 16), Z = flat ? 0 : 20 + col * 10, W = tsz.W, H = tsz.H,
-                    ScreenId = screenId, Size = Frame.Sm, OwnerName = owner?.Name ?? "", HighlightId = owner?.Id, RotY = flat ? 0 : -6,
+                    ScreenId = screenId, Size = PreviewFrame.Sm, OwnerName = owner?.Name ?? "", HighlightId = owner?.Id, RotY = flat ? 0 : -6,
                 });
             }
         }
@@ -547,7 +550,7 @@ public static class LayoutEngine
         var r = new LayoutResult();
         var cards = r.Cards; var links = r.Links;
         var screen = g.HostScreenOf(id)!;
-        var size = docked ? Frame.Md : Frame.Lg;
+        var size = docked ? PreviewFrame.Md : PreviewFrame.Lg;
         var sz = PreviewCardSize(size);
         var front = screen.Id;
         cards.Add(new Card
@@ -571,7 +574,7 @@ public static class LayoutEngine
             var frac = new Dictionary<string, double>();
             for (var i = 0; i < hotMembers.Count; i++)
                 frac[hotMembers[i].Id] = b != null ? b.Y + b.H / 2 + (i - (hot.Count - 1) / 2.0) * 0.08 : 0.5;
-            var (rows, h) = AlignedRows(members, hot, frac, Frame.Of(size).H);
+            var (rows, h) = AlignedRows(members, hot, frac, PreviewFrame.Of(size).H);
             cards.Add(new Card
             {
                 Kind = "vm", Key = vm.Id, Type = NodeType.ViewModel, Id = vm.Id,
@@ -675,7 +678,7 @@ public static class LayoutEngine
             foreach (var st in g.StatesOf(screen.Id))
                 if ((st.Preview?.Dim ?? new()).Contains(id) || (st.Preview?.Hide ?? new()).Contains(id)) all.Add((st, $"screen state affects {n.Name}"));
             if (all.Count == 0) { r.Note = $"No declared states involve {n.Name}"; return r; }
-            var tsz = PreviewCardSize(Frame.Sm);
+            var tsz = PreviewCardSize(PreviewFrame.Sm);
             for (var j = 0; j < all.Count; j++)
             {
                 var (st, label) = all[j];
@@ -683,7 +686,7 @@ public static class LayoutEngine
                 {
                     Kind = "state", Key = $"{st.Id}#thumb", Type = NodeType.State, Id = st.Id,
                     X = rx - 40 + j * (tsz.W + 44), Y = 0, Z = flat ? 0 : 20 + j * 10, W = tsz.W, H = tsz.H,
-                    ScreenId = screen.Id, Size = Frame.Sm, OwnerName = label, HighlightId = id, RotY = flat ? 0 : -6,
+                    ScreenId = screen.Id, Size = PreviewFrame.Sm, OwnerName = label, HighlightId = id, RotY = flat ? 0 : -6,
                 });
                 links.Add(L($"{region}:r", $"{st.Id}#thumb:l", Relation.HasState));
             }
@@ -699,7 +702,7 @@ public static class LayoutEngine
         var uses = g.ScreensUsingDefinition(def.Id);
         cards.Add(new Card { Kind = "detail", Key = def.Id, Type = NodeType.Component, Id = def.Id, X = 0, Y = docked ? 0 : -180, Z = flat ? 0 : 40, W = 320, H = 132 });
         if (docked) return r;
-        var tsz = PreviewCardSize(Frame.Sm);
+        var tsz = PreviewCardSize(PreviewFrame.Sm);
         for (var i = 0; i < uses.Count; i++)
         {
             var u = uses[i];
@@ -708,7 +711,7 @@ public static class LayoutEngine
             {
                 Kind = "screen", Key = key, Type = NodeType.Screen, Id = u.Screen.Id,
                 X = Spread(i, uses.Count, tsz.W + 40), Y = 60 + tsz.H / 2 - 60, Z = 0, W = tsz.W, H = tsz.H,
-                Size = Frame.Sm, Interactive = true, HighlightId = u.Instance.Id, Recede = true, Caption = u.Instance.Name,
+                Size = PreviewFrame.Sm, Interactive = true, HighlightId = u.Instance.Id, Recede = true, Caption = u.Instance.Name,
             });
             links.Add(L($"{def.Id}:b", $"{key}/{u.Instance.Id}:c", Relation.InstanceOf, "", arrow: true));
         }
@@ -738,7 +741,7 @@ public static class LayoutEngine
         cards.Add(new Card { Kind = "vm", Key = vm.Id, Type = NodeType.ViewModel, Id = vm.Id, X = 0, Y = 0, Z = 0, W = VmW + 30, H = h, Members = members, Expanded = true });
         if (docked) return r;
         var users = g.ScreensUsingVm(vm.Id);
-        var tsz = PreviewCardSize(Frame.Sm);
+        var tsz = PreviewCardSize(PreviewFrame.Sm);
         for (var i = 0; i < users.Count; i++)
         {
             var s = users[i];
@@ -746,7 +749,7 @@ public static class LayoutEngine
             cards.Add(new Card
             {
                 Kind = "screen", Key = key, Type = NodeType.Screen, Id = s.Id,
-                X = -(VmW / 2 + 200), Y = Spread(i, users.Count, tsz.H + 16), Z = flat ? 0 : 60, W = tsz.W, H = tsz.H, Size = Frame.Sm, Interactive = false,
+                X = -(VmW / 2 + 200), Y = Spread(i, users.Count, tsz.H + 16), Z = flat ? 0 : 60, W = tsz.W, H = tsz.H, Size = PreviewFrame.Sm, Interactive = false,
             });
             links.Add(L($"{key}:r", $"{vm.Id}:l", Relation.UsesViewModel, "uses", arrow: true));
         }
@@ -777,7 +780,7 @@ public static class LayoutEngine
             if (!byScreen.TryGetValue(c.Screen.Id, out var list)) { byScreen[c.Screen.Id] = list = new(); screenOrder.Add(c.Screen.Id); }
             list.Add(c);
         }
-        var tsz = PreviewCardSize(Frame.Sm);
+        var tsz = PreviewCardSize(PreviewFrame.Sm);
         for (var i = 0; i < screenOrder.Count; i++)
         {
             var screenId = screenOrder[i];
@@ -787,7 +790,7 @@ public static class LayoutEngine
             {
                 Kind = "screen", Key = key, Type = NodeType.Screen, Id = screenId,
                 X = -(W / 2 + 200), Y = Spread(i, screenOrder.Count, tsz.H + 16), Z = 0, W = tsz.W, H = tsz.H,
-                Size = Frame.Sm, Interactive = true, HighlightId = cs[0].Instance.Id, HighlightIds = cs.Select(c => c.Instance.Id).ToList(), Recede = true,
+                Size = PreviewFrame.Sm, Interactive = true, HighlightId = cs[0].Instance.Id, HighlightIds = cs.Select(c => c.Instance.Id).ToList(), Recede = true,
             });
             foreach (var c in cs) links.Add(L($"{key}/{c.Instance.Id}:r", $"{m.Id}:l", c.Edge.Relation, c.Edge.Label ?? "", arrow: c.Edge.Relation == Relation.Invokes, inferred: c.Edge.IsInferred));
         }
@@ -829,7 +832,7 @@ public static class LayoutEngine
         var cards = r.Cards; var links = r.Links;
         var owner = g.OwnerOfState(st.Id);
         var screen = owner == null ? null : owner.Type == NodeType.Screen ? owner : g.HostScreenOf(owner.Id);
-        var size = docked ? Frame.Sm : Frame.Md;
+        var size = docked ? PreviewFrame.Sm : PreviewFrame.Md;
         var sz = PreviewCardSize(size);
         var key = $"{st.Id}#big";
         cards.Add(new Card
@@ -892,7 +895,7 @@ public static class LayoutEngine
         var cards = r.Cards; var links = r.Links;
         cards.Add(new Card { Kind = "detail", Key = route.Id, Type = NodeType.Route, Id = route.Id, X = 0, Y = 0, Z = 0, W = 280, H = 130 });
         if (docked) return r;
-        var tsz = PreviewCardSize(Frame.Sm);
+        var tsz = PreviewCardSize(PreviewFrame.Sm);
         var origins = g.RouteOrigins(route.Id);
         for (var i = 0; i < origins.Count; i++)
         {
@@ -902,7 +905,7 @@ public static class LayoutEngine
             {
                 Kind = "screen", Key = key, Type = NodeType.Screen, Id = o.Screen.Id,
                 X = -(140 + 160), Y = Spread(i, origins.Count, tsz.H + 16), Z = 0, W = tsz.W, H = tsz.H,
-                Size = Frame.Sm, Interactive = true, HighlightId = o.Instance?.Id, Recede = o.Instance != null,
+                Size = PreviewFrame.Sm, Interactive = true, HighlightId = o.Instance?.Id, Recede = o.Instance != null,
             });
             links.Add(L(o.Instance != null ? $"{key}/{o.Instance.Id}:r" : $"{key}:r", $"{route.Id}:l", "route", o.Edge.Label is { Length: > 0 } lbl ? lbl : o.Via.Name, arrow: true));
         }
@@ -910,7 +913,7 @@ public static class LayoutEngine
         if (target != null)
         {
             var key = $"{target.Id}#target";
-            cards.Add(new Card { Kind = "screen", Key = key, Type = NodeType.Screen, Id = target.Id, X = 140 + 160, Y = 0, Z = 0, W = tsz.W, H = tsz.H, Size = Frame.Sm, Interactive = false });
+            cards.Add(new Card { Kind = "screen", Key = key, Type = NodeType.Screen, Id = target.Id, X = 140 + 160, Y = 0, Z = 0, W = tsz.W, H = tsz.H, Size = PreviewFrame.Sm, Interactive = false });
             links.Add(L($"{route.Id}:r", $"{key}:l", "route", "navigates to", arrow: true));
         }
         r.Note = route.Prop("mechanism") ?? "";

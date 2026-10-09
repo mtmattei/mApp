@@ -37,6 +37,12 @@ public partial class App : Application
 
         MainWindow.SetWindowIcon();
 
+        // the design viewport; a harness can pin another size with APP_ORBIT_SIZE=WxH
+        var size = Environment.GetEnvironmentVariable("APP_ORBIT_SIZE")?.Split('x');
+        var w = size?.Length == 2 && int.TryParse(size[0], out var pw) ? pw : 1440;
+        var h = size?.Length == 2 && int.TryParse(size[1], out var ph) ? ph : 900;
+        try { MainWindow.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = w, Height = h }); } catch { }
+
         // The Win32 GL render thread access-violates at degenerate sizes; the shell needs the width anyway.
         if (MainWindow.AppWindow.Presenter is OverlappedPresenter presenter)
         {
