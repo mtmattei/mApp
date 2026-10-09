@@ -28,6 +28,7 @@ public sealed partial class ShellPage
         };
     }
 
+    internal void FocusSearchForJourney() => SearchBox.Focus(FocusState.Keyboard);
     internal void OpenSearchForJourney(string query) { SearchBox.Text = query; _hits = G.Search(query); _selected = 0; RenderSearch(); }
     internal bool SearchOpenForJourney => SearchPopup.IsOpen && _hits.Count > 0;
 

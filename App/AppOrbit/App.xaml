@@ -4,65 +4,6 @@
 
   <Application.Resources>
     <ResourceDictionary>
-      <!-- lightweight styling for the stock templates (hover, pressed, focused). Must sit at app level: a merged dictionary's theme entries are not seen by the templates. -->
-<ResourceDictionary.ThemeDictionaries>
-  <ResourceDictionary x:Key="Light">
-    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#ECEBE4" />
-    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#E3E2DA" />
-    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#1D2430" />
-    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#1D2430" />
-    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#7A8190" />
-    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#7A8190" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#ECEBE4" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#E3E2DA" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="#1D2430" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="#1D2430" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#7A8190" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushPressed" Color="#7A8190" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#ECEBE4" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#E3E2DA" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#E3E2DA" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="#1D2430" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="#1D2430" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="#1D2430" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="#7A8190" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="#7A8190" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="#7A8190" />
-    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#F5F4EF" />
-    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#ECEBE4" />
-    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#2457D6" />
-    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#CFD2D8" />
-    <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
-  </ResourceDictionary>
-  <ResourceDictionary x:Key="Dark">
-    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#1C2028" />
-    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#232834" />
-    <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#E8E9EC" />
-    <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#E8E9EC" />
-    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#848A97" />
-    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#848A97" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#1C2028" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#232834" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="#E8E9EC" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="#E8E9EC" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#848A97" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushPressed" Color="#848A97" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#1C2028" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#232834" />
-    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#232834" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="#E8E9EC" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="#E8E9EC" />
-    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="#E8E9EC" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="#848A97" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="#848A97" />
-    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="#848A97" />
-    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#15181E" />
-    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1C2028" />
-    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#7AA2FF" />
-    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#3A3F4A" />
-    <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
-  </ResourceDictionary>
-</ResourceDictionary.ThemeDictionaries>
       <ResourceDictionary.MergedDictionaries>
         <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
         <ResourceDictionary Source="ms-appx:///Themes/Tokens.xaml" />

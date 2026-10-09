@@ -178,6 +178,8 @@ internal static class Journey
         Check(HasCard("state.place-order.disabled#in"), "the Disabled state depends on it");
         await Shot("06-can-place-order");
 
+        page.FocusSearchForJourney(); await Settle(300);
+        await Shot("07b-search-focus");
         page.OpenSearchForJourney("Order"); await Settle(400);
         Check(page.SearchOpenForJourney, "typing in the search box lists matching entities");
         await Shot("07a-search");
@@ -235,7 +237,7 @@ internal static class Journey
             dock.Lift(new Windows.Foundation.Point(head.X, head.Y));
             dock.Carry(new Windows.Foundation.Point(head.X + 12, head.Y + 12));
             await Settle(450); // the prototype reads at 250ms; a software renderer gives this loop a quarter of the frames
-            Log($"note: dock loop {dock.Ticks} ticks in {dock.Elapsed * 1000:0}ms");
+            Log($"note: dock loop ran {dock.Ticks} frames in 450ms");
             Check(dock.Phase == "lifted" && dock.Width < 450, $"lifting shrinks the viewer to carry size ({dock.Width:0}px)");
             Check(dock.GhostState == "holder", "the holder it came from stays drawn");
             Check(S().Carrying, "the scene takes its compact form at pick-up");
@@ -274,6 +276,13 @@ internal static class Journey
         await Shot("11-help");
         page.HideHelp(); await Settle(300);
         Check(!page.HelpOpen, "Esc closes it");
+
+        // paint cost on the busiest layout: the behavior lens at screen level, 60 camera frames
+        page.Focus("screen.checkout"); page.SetLens(Lens.Behavior); await Settle(600);
+        page.StageForJourney.ResetPaintStats();
+        for (var i = 0; i < 60; i++) { page.StageForJourney.SetCamera(yaw: -18 + i % 7, immediate: true); await Task.Delay(16); }
+        var (avg, max, frames) = page.StageForJourney.PaintStats;
+        Log($"note: paint avg {avg:0.00} ms, max {max:0.00} ms over {frames} frames (software rendering under Xvfb)");
 
         page.Focus(null); await Settle();
         page.StageForJourney.StepCursor(1); await Settle(100);

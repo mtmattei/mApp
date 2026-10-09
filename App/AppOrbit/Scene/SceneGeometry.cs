@@ -172,14 +172,20 @@ public static class SceneGeometry
         }
     }
 
-    /// <summary>Cards back to front, the painter's order.</summary>
-    public static IEnumerable<CardGeom> PaintOrder(List<CardGeom> geoms) => geoms.OrderBy(g => g.Depth);
-
-    /// <summary>The topmost hit under a stage point, sub-elements before their card.</summary>
-    public static (CardGeom Geom, HitRegion Hit)? HitTest(List<CardGeom> geoms, SKPoint p)
+    /// <summary>Cards back to front, the painter's order; sorted once per projection.</summary>
+    public static CardGeom[] PaintOrder(List<CardGeom> geoms)
     {
-        foreach (var gm in geoms.OrderByDescending(g => g.Depth))
+        var order = geoms.ToArray();
+        Array.Sort(order, (a, b) => a.Depth.CompareTo(b.Depth));
+        return order;
+    }
+
+    /// <summary>The topmost hit under a stage point, sub-elements before their card. Walks the paint order front to back.</summary>
+    public static (CardGeom Geom, HitRegion Hit)? HitTest(CardGeom[] paintOrder, SKPoint p)
+    {
+        for (var i = paintOrder.Length - 1; i >= 0; i--)
         {
+            var gm = paintOrder[i];
             if (!gm.Invertible) continue;
             var local = gm.Inv.MapPoint(p);
             if (!gm.Shape.Face.Contains(local)) continue;

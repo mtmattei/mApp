@@ -22,8 +22,10 @@ file tree.
 - `net10.0-desktop` only for this version (Windows via Win32, Linux via X11
   for headless verification in this container). WebAssembly and mobile are a
   later decision; nothing here prevents them except the SKCanvasElement guard.
-- `Uno.Sdk 6.8.0-dev.12`, pinned in `global.json`. Known good in this
-  container with the `exploded` app (SkiaSharp 3.119, SKCanvasElement, Xvfb).
+- `Uno.Sdk 6.7.30` (latest stable at the time of the audit), pinned in
+  `global.json`; it bundles Uno.WinUI 6.7.135 and SkiaSharp 3.119.2. The app
+  was built on `6.8.0-dev.12` and moved to stable in the audit pass with no
+  change in the journey or the renders.
 - `UnoFeatures`: `SkiaRenderer`. No Toolkit, no Material, no Navigation
   extensions, no MVUX (see the pattern decision).
 
@@ -300,6 +302,25 @@ Scene/Palette.cs  ← the same keys, snapshotted to SKColor per theme
 6. ✔ Docking: lift, carry, pull, ghost, settle, D; reduced motion in one step.
 7. ✔ Orbit figure in the inspector (Iso.cs from exploded).
 8. ✔ Parity pass: 70 journey checks in both themes, screenshots per stop, README for the app.
+
+## Audit (uno-audit, dotnet-csharp, winui-xaml)
+
+Run after parity. Skills applied: `uno-audit` for the pass itself,
+`uno-platform-agent` and `uno-scaffolding` for the stack and the gotchas,
+`skiasharp-uno` for Skia object lifetime, `dotnet-csharp` for resource
+disposal, `winui-xaml` for the shell.
+
+| Area | Finding | Resolution |
+|---|---|---|
+| Stack | `6.8.0-dev.12` pinned while `6.7.30` is stable | moved to `6.7.30`; journey and renders unchanged |
+| Skia lifetime | a dash effect allocated per dashed icon draw, a gradient shader per UI-fidelity image, two layer paints and an empty-part dash per frame, a compose effect never disposed | all cached on their owner or disposed; owners dispose them (`PreviewPainter : IDisposable`) |
+| Per-frame work | a graph walk (`InstancesOfScreen`) per preview per frame; cards sorted twice per frame (paint and hit test); ellipsis fitting re-measured every frame | instances cached per screen; one sort per projection shared by paint and hit test; fitted strings cached |
+| Measured | paint on the behavior lens at screen level, software rendering | 1.13 ms avg / 7.3 ms max → 0.54 ms avg / 1.2 ms max |
+| Hygiene | an unread field in the figure, a duplicate dash effect, an unused stopwatch and property in the dock | removed; IDE0005 reports no unused usings |
+| Colours | lightweight-styling overrides repeated the token hex values in App.xaml | overrides moved into Tokens.xaml's theme dictionaries as `StaticResource Color.*`; the hex values exist once |
+| Material / type scale | not used: the prototype's own tokens and five sizes are the design | deliberate; recorded here |
+| Localization | user-visible text is inline, no `x:Uid` | deliberate for the prototype port; a localization pass is a separate task |
+| Runtime verify | `uno-verify` needs the App MCP, absent in this container | the journey runner and screenshots stand in; a Windows run is still owed |
 
 ## What was learned building it
 

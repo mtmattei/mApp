@@ -56,10 +56,26 @@ public static class Fonts
         return top + (h - (m.Descent - m.Ascent)) / 2 - m.Ascent;
     }
 
-    /// <summary>Trims text with an ellipsis to fit maxWidth.</summary>
+    private static readonly Dictionary<(SKFont, string, int), string> FitCache = new();
+
+    /// <summary>Trims text with an ellipsis to fit maxWidth. Results are cached: the same strings are measured every frame.</summary>
     public static string Fit(SKFont font, string text, float maxWidth)
     {
-        if (string.IsNullOrEmpty(text) || font.MeasureText(text) <= maxWidth) return text;
+        if (string.IsNullOrEmpty(text)) return text;
+        var key = (font, text, (int)maxWidth);
+        lock (Gate)
+        {
+            if (FitCache.TryGetValue(key, out var hit)) return hit;
+            if (FitCache.Count > 4096) FitCache.Clear();
+            var fitted = FitUncached(font, text, maxWidth);
+            FitCache[key] = fitted;
+            return fitted;
+        }
+    }
+
+    private static string FitUncached(SKFont font, string text, float maxWidth)
+    {
+        if (font.MeasureText(text) <= maxWidth) return text;
         const string ell = "…";
         var ellW = font.MeasureText(ell);
         var lo = 0; var hi = text.Length;

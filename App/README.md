@@ -3,7 +3,7 @@
 The Uno Platform version of the App Orbit prototype one folder up: the same
 app graph, the same layout rules, the same shell, drawn with SkiaSharp inside
 a XAML page. One project, `net10.0-desktop` (Windows, and Linux under X11 for
-the headless checks), Uno.Sdk 6.8.0-dev.12.
+the headless checks), Uno.Sdk 6.7.30.
 
 ```sh
 cd AppOrbit/App
@@ -50,7 +50,7 @@ Three gates, in order of strength:
    relationship tracing, inspection, the editor sync, the inferred edge,
    fidelity, card moves, flat view, the docking path, reduced motion, the
    figure, the keyboard cursor, pointer hit tests on the projected geometry.
-   68 checks, `tools/run-xvfb.sh` (and `tools/run-xvfb.sh dark`).
+   73 checks, `tools/run-xvfb.sh` (and `tools/run-xvfb.sh dark`).
 3. **Screenshots.** One per stop in `shots/`, compared by eye with
    `../tests/screenshots/`.
 
@@ -58,6 +58,15 @@ The viewer is drawn, not composed: one `SKCanvasElement` places every card
 through the same perspective pipeline the CSS used (perspective 1400, scale,
 pitch, yaw), so the scene lands where the prototype's does, and connectors
 run between the same anchors. The shell around it is XAML.
+
+## Audit
+
+`SPEC.md` has the audit table: the stack moved to stable Uno.Sdk, five
+per-frame Skia allocations and a per-frame graph walk were removed (paint on
+the busiest layout went from 1.13 ms to 0.54 ms average under software
+rendering), and the lightweight-styling overrides reference the colour tokens
+instead of repeating them. The journey logs the paint cost of its busiest
+layout on every run.
 
 ## Decisions
 

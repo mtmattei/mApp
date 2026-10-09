@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
@@ -56,7 +55,6 @@ public sealed class DockController
     private Drag? _drag;
     private string? _preview;
     private IDisposable? _loop;
-    private readonly Stopwatch _clock = new();
     private double _settleT = -1;
     private readonly ScaleTransform _settle = new();
 
@@ -76,8 +74,8 @@ public sealed class DockController
     public string Phase => _phase;
     public string GhostState { get; private set; } = "none";
     public double Width => _w.X;
+    /// <summary>Frames the spring loop has run; the journey runner reports it.</summary>
     public int Ticks { get; private set; }
-    public double Elapsed => _clock.Elapsed.TotalSeconds;
 
     private static double Clamp(double v, double a, double b) => Math.Max(a, Math.Min(b, v));
     private static double Smooth(double t) { t = Clamp(t, 0, 1); return t * t * (3 - 2 * t); }
@@ -121,7 +119,6 @@ public sealed class DockController
     private void Loop()
     {
         if (_loop != null) return;
-        _clock.Restart();
         _loop = Scene.FrameLoop.Start(_h.Shell.DispatcherQueue, Tick);
     }
 

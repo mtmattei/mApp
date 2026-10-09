@@ -10,6 +10,7 @@ public static class Icons
     private static readonly Dictionary<string, SKPath> Paths = new();
     private static readonly Dictionary<string, SKPath> Fills = new();
     private static readonly object Gate = new();
+    private static readonly SKPathEffect InstanceDash = SKPathEffect.CreateDash(new[] { 2f, 1.4f }, 0);
 
     public static (SKPath Stroke, SKPath? Fill, bool Dashed) For(string? type)
     {
@@ -87,7 +88,7 @@ public static class Icons
         paint.StrokeCap = SKStrokeCap.Round;
         paint.StrokeJoin = SKStrokeJoin.Round;
         paint.Color = color;
-        paint.PathEffect = dashed ? SKPathEffect.CreateDash(new[] { 2f, 1.4f }, 0) : null;
+        paint.PathEffect = dashed ? InstanceDash : null;
         canvas.Save();
         canvas.Translate(x, y);
         canvas.Scale(size / 12f);

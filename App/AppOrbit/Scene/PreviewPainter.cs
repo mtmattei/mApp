@@ -11,7 +11,7 @@ public sealed record PreviewSpec(string ScreenId, string Size, string? StateId, 
 public sealed record PreviewRegion(string InstanceId, string Name, SKRect Rect, bool Highlight, bool Faded);
 
 /// <summary>preview.js: wireframe (or UI-fidelity) screen previews from node.preview specs, drawn in Skia.</summary>
-public sealed class PreviewPainter
+public sealed class PreviewPainter : IDisposable
 {
     private static readonly float[] Hues = { 24, 150, 205, 38, 280, 190 };
     private readonly GraphIndex _g;
@@ -20,6 +20,12 @@ public sealed class PreviewPainter
     private readonly SKPaint _stroke = new() { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 1 };
     private readonly SKPaint _text = new() { IsAntialias = true };
     private readonly SKPaint _hatch = new() { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 2 };
+    private readonly SKPaint _layer = new();
+    private readonly SKPathEffect _emptyDash = SKPathEffect.CreateDash(new[] { 3f, 3f }, 0);
+    // the UI-fidelity image gradient, over the unit square; the canvas is scaled to the part
+    private readonly SKShader _imageShader = SKShader.CreateLinearGradient(new SKPoint(0, 0), new SKPoint(1, 1), new[] { SKColor.FromHsl(24, 30, 78), SKColor.FromHsl(24, 35, 60) }, SKShaderTileMode.Clamp);
+    // the graph is immutable: a screen's instances with preview bounds are computed once
+    private readonly Dictionary<string, List<Node>> _instances = new();
 
     public bool UiFidelity { get; set; }
 
@@ -27,6 +33,13 @@ public sealed class PreviewPainter
     {
         _g = g;
         _p = palette;
+    }
+
+    private List<Node> InstancesWithBounds(string screenId)
+    {
+        if (!_instances.TryGetValue(screenId, out var list))
+            _instances[screenId] = list = _g.InstancesOfScreen(screenId).Select(x => x.Node).Where(n => n.Preview?.Bounds != null).ToList();
+        return list;
     }
 
     public static bool Near(Rect a, Rect b) =>
@@ -42,12 +55,10 @@ public sealed class PreviewPainter
         var highlight = new HashSet<string>(o.HighlightIds ?? new());
         if (o.HighlightId != null) highlight.Add(o.HighlightId);
         if (!o.Interactive && highlight.Count == 0) return acc;
-        foreach (var at in _g.InstancesOfScreen(screen.Id))
+        foreach (var inst in InstancesWithBounds(screen.Id))
         {
-            var b = at.Node.Preview?.Bounds;
-            if (b == null) continue;
-            var hi = highlight.Contains(at.Node.Id);
-            acc.Add(new PreviewRegion(at.Node.Id, at.Node.Name, R(b, w, h), hi, !hi && o.Recede));
+            var hi = highlight.Contains(inst.Id);
+            acc.Add(new PreviewRegion(inst.Id, inst.Name, R(inst.Preview!.Bounds!, w, h), hi, !hi && o.Recede));
         }
         return acc;
     }
@@ -68,10 +79,9 @@ public sealed class PreviewPainter
         var screen = _g.Node(o.ScreenId);
         if (screen?.Preview?.Parts != null)
         {
-            var instances = _g.InstancesOfScreen(screen.Id).Select(x => x.Node).Where(n => n.Preview?.Bounds != null).ToList();
+            var instances = InstancesWithBounds(screen.Id);
             var state = o.StateId != null ? _g.Node(o.StateId) : null;
-            var alpha = o.Recede ? (byte)64 : (byte)255;
-            if (o.Recede) canvas.SaveLayer(new SKPaint { Color = SKColors.White.WithAlpha(alpha) });
+            if (o.Recede) { _layer.Color = SKColors.White.WithAlpha(64); canvas.SaveLayer(_layer); }
             foreach (var part in screen.Preview.Parts) DrawPart(canvas, part, u, w, h);
             if (state?.Preview != null)
             {
@@ -237,9 +247,14 @@ public sealed class PreviewPainter
                 var rr = new SKRoundRect(r, 8 * u, 8 * u);
                 if (ui)
                 {
-                    _fill.Shader = SKShader.CreateLinearGradient(new SKPoint(r.Left, r.Top), new SKPoint(r.Right, r.Bottom), new[] { SKColor.FromHsl(24, 30, 78), SKColor.FromHsl(24, 35, 60) }, SKShaderTileMode.Clamp);
-                    canvas.DrawRoundRect(rr, _fill);
+                    canvas.Save();
+                    canvas.ClipRoundRect(rr, antialias: true);
+                    canvas.Translate(r.Left, r.Top);
+                    canvas.Scale(r.Width, r.Height);
+                    _fill.Shader = _imageShader;
+                    canvas.DrawRect(new SKRect(0, 0, 1, 1), _fill);
                     _fill.Shader = null;
+                    canvas.Restore();
                 }
                 else
                 {
@@ -283,7 +298,7 @@ public sealed class PreviewPainter
             {
                 var rr = new SKRoundRect(r, 6 * u, 6 * u);
                 _fill.Color = ui ? _p.Paper2 : _p.Paper; canvas.DrawRoundRect(rr, _fill);
-                if (!ui) { _stroke.Color = _p.Rule; _stroke.StrokeWidth = 1; _stroke.PathEffect = SKPathEffect.CreateDash(new[] { 3f, 3f }, 0); canvas.DrawRoundRect(rr, _stroke); _stroke.PathEffect = null; }
+                if (!ui) { _stroke.Color = _p.Rule; _stroke.StrokeWidth = 1; _stroke.PathEffect = _emptyDash; canvas.DrawRoundRect(rr, _stroke); _stroke.PathEffect = null; }
                 Fonts.Draw(canvas, part.Label ?? "Nothing here", r.MidX, r.Top, r.Height, Fonts.Get(10 * u, italic: !ui), _p.Ink3, SKTextAlign.Center, r.Width - 8 * u, _text);
                 break;
             }
@@ -308,6 +323,11 @@ public sealed class PreviewPainter
                 break;
             }
         }
+    }
+
+    public void Dispose()
+    {
+        _fill.Dispose(); _stroke.Dispose(); _text.Dispose(); _hatch.Dispose(); _layer.Dispose(); _emptyDash.Dispose(); _imageShader.Dispose();
     }
 
     public static SKColor Mix(SKColor a, SKColor b, float t) => new(

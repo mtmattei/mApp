@@ -52,6 +52,19 @@
       <SolidColorBrush x:Key="Hue.Comp" Color="{StaticResource Color.Hue.Comp}" />
       <SolidColorBrush x:Key="UiAccent" Color="{StaticResource Color.UiAccent}" />
       <SolidColorBrush x:Key="UiAccentSoft" Color="{StaticResource Color.UiAccentSoft}" />
+
+      <!-- lightweight styling: the stock Button and TextBox templates read these keys for hover, pressed and focus -->
+<SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource Color.Paper2}" />
+<SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource Color.Paper3}" />
+<SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource Color.Ink}" />
+<SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource Color.Ink}" />
+<SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource Color.Ink3}" />
+<SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource Color.Ink3}" />
+<SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource Color.Paper}" />
+<SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource Color.Paper2}" />
+<SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource Color.Focus}" />
+<SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource Color.Rule}" />
+<Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
     </ResourceDictionary>
 
     <ResourceDictionary x:Key="Dark">
@@ -97,6 +110,19 @@
       <SolidColorBrush x:Key="Hue.Comp" Color="{StaticResource Color.Hue.Comp}" />
       <SolidColorBrush x:Key="UiAccent" Color="{StaticResource Color.UiAccent}" />
       <SolidColorBrush x:Key="UiAccentSoft" Color="{StaticResource Color.UiAccentSoft}" />
+
+      <!-- lightweight styling: the stock Button and TextBox templates read these keys for hover, pressed and focus -->
+<SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{StaticResource Color.Paper2}" />
+<SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource Color.Paper3}" />
+<SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource Color.Ink}" />
+<SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource Color.Ink}" />
+<SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource Color.Ink3}" />
+<SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource Color.Ink3}" />
+<SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource Color.Paper}" />
+<SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource Color.Paper2}" />
+<SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource Color.Focus}" />
+<SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource Color.Rule}" />
+<Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 

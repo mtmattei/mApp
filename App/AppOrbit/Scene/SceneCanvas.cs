@@ -25,6 +25,7 @@ public sealed partial class SceneCanvas : SKCanvasElement
     private SceneRenderer? _renderer;
     private readonly Camera _cam = new();
     private List<CardGeom> _geoms = new();
+    private CardGeom[] _order = Array.Empty<CardGeom>();
     private LayoutResult? _layout;
     private AppState? _state;
     private SceneFrame? _frame;
@@ -136,9 +137,10 @@ public sealed partial class SceneCanvas : SKCanvasElement
     {
         if (_layout == null || _state == null) return;
         SceneGeometry.Project(_geoms, _cam, ActualWidth, ActualHeight, OffsetOf);
+        _order = SceneGeometry.PaintOrder(_geoms);
         _frame = new SceneFrame
         {
-            Geoms = _geoms, Links = _layout.Links,
+            Geoms = _geoms, PaintOrder = _order, Links = _layout.Links,
             FocusId = _state.FocusId, HoverId = _state.HoverId, CursorId = _state.CursorId,
             Opacity = (float)_fade, DrawT = (float)_draw, Docked = _state.Mode == Modes.Docked,
             Width = (float)ActualWidth, Height = (float)ActualHeight,
@@ -147,11 +149,31 @@ public sealed partial class SceneCanvas : SKCanvasElement
         Invalidate();
     }
 
+    // paint timing, read by the journey runner: a ring of the last 240 frames
+    private readonly double[] _paintMs = new double[240];
+    private int _paintN;
+
+    public (double AvgMs, double MaxMs, int Frames) PaintStats
+    {
+        get
+        {
+            var n = Math.Min(_paintN, _paintMs.Length);
+            if (n == 0) return (0, 0, 0);
+            double sum = 0, max = 0;
+            for (var i = 0; i < n; i++) { sum += _paintMs[i]; max = Math.Max(max, _paintMs[i]); }
+            return (sum / n, max, _paintN);
+        }
+    }
+
+    public void ResetPaintStats() => _paintN = 0;
+
     protected override void RenderOverride(SKCanvas canvas, Size area)
     {
         var frame = _frame;
         if (frame == null || _renderer == null) return;
+        var t0 = System.Diagnostics.Stopwatch.GetTimestamp();
         _renderer.Paint(canvas, frame);
+        _paintMs[_paintN++ % _paintMs.Length] = System.Diagnostics.Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
     }
 
     // ---------------------------------------------------------------- loop (subscribed only while something moves)
@@ -260,14 +282,14 @@ public sealed partial class SceneCanvas : SKCanvasElement
         {
             if (!gm.Anchors.TryGetValue(anchorKey, out var local)) continue;
             var (x, y, _) = gm.M.Project(local.X, local.Y);
-            return SceneGeometry.HitTest(_geoms, new SKPoint((float)x, (float)y))?.Hit.Id;
+            return SceneGeometry.HitTest(_order, new SKPoint((float)x, (float)y))?.Hit.Id;
         }
         return null;
     }
 
     // ---------------------------------------------------------------- pointer
 
-    private (CardGeom Geom, HitRegion Hit)? HitAt(Point p) => SceneGeometry.HitTest(_geoms, new SKPoint((float)p.X, (float)p.Y));
+    private (CardGeom Geom, HitRegion Hit)? HitAt(Point p) => SceneGeometry.HitTest(_order, new SKPoint((float)p.X, (float)p.Y));
 
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {

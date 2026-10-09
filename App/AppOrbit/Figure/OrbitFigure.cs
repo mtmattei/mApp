@@ -50,7 +50,6 @@ public sealed partial class OrbitFigure : SKCanvasElement
     private readonly Sample[] _pad = Iso.Circ(5, 24);
     private double _gap = 20;
     private int _act = -1;
-    private Point? _lastP;
     // the gap spring (kernel defaults k 100, c 18), as a share of GAP
     private double _x = Rest, _v, _t = Rest;
     private IDisposable? _loop;
@@ -81,7 +80,7 @@ public sealed partial class OrbitFigure : SKCanvasElement
         }).ToArray();
         ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(Microsoft.UI.Input.InputSystemCursorShape.Cross);
         PointerMoved += OnMoved;
-        PointerExited += (_, _) => { _lastP = null; _t = Rest; SetAct(-1); Loop(); };
+        PointerExited += (_, _) => { _t = Rest; SetAct(-1); Loop(); };
         Tapped += (_, _) => { if (_act >= 0 && LensOf.TryGetValue(Lay[_act].Name, out var lens)) Picked?.Invoke(lens); };
         SizeChanged += (_, _) => Project();
         Unloaded += (_, _) => StopLoop();
@@ -100,7 +99,6 @@ public sealed partial class OrbitFigure : SKCanvasElement
 
     private void Move(Point p)
     {
-        _lastP = p;
         var vb = ToViewBox(p);
         _t = Rest + (1 - Rest) * Math.Clamp((vb.X - 60) / 280, 0, 1);
         SetAct(Pick(vb));

@@ -9,6 +9,7 @@ namespace AppOrbit.Scene;
 public sealed class SceneFrame
 {
     public required List<CardGeom> Geoms { get; init; }
+    public required CardGeom[] PaintOrder { get; init; }
     public required List<Link> Links { get; init; }
     public string? FocusId, HoverId, CursorId;
     public float Opacity = 1;
@@ -33,8 +34,8 @@ public sealed class SceneRenderer : IDisposable
     private readonly SKPaint _shadow = new() { IsAntialias = true, Style = SKPaintStyle.Fill, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 10) };
     private readonly SKPaint _halo = new() { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 3, StrokeJoin = SKStrokeJoin.Round };
     private readonly SKPathEffect _dash = SKPathEffect.CreateDash(new[] { 4f, 3f }, 0);
-    private readonly SKPathEffect _dashBorder = SKPathEffect.CreateDash(new[] { 4f, 3f }, 0);
     private readonly SKPathEffect _dots = SKPathEffect.CreateDash(new[] { 1f, 3f }, 0);
+    private readonly SKPaint _layer = new();
 
     public PreviewPainter Previews => _previews;
     public Palette Palette => _p;
@@ -48,8 +49,9 @@ public sealed class SceneRenderer : IDisposable
 
     public void Dispose()
     {
-        _fill.Dispose(); _stroke.Dispose(); _text.Dispose(); _shadow.Dispose(); _halo.Dispose();
-        _dash.Dispose(); _dashBorder.Dispose(); _dots.Dispose();
+        _fill.Dispose(); _stroke.Dispose(); _text.Dispose(); _shadow.Dispose(); _halo.Dispose(); _layer.Dispose();
+        _previews.Dispose();
+        _dash.Dispose(); _dots.Dispose();
     }
 
     // ---------------------------------------------------------------- frame
@@ -57,8 +59,8 @@ public sealed class SceneRenderer : IDisposable
     public void Paint(SKCanvas canvas, SceneFrame f)
     {
         DrawPaper(canvas, f);
-        if (f.Opacity < 1) canvas.SaveLayer(new SKPaint { Color = SKColors.White.WithAlpha((byte)(255 * f.Opacity)) });
-        foreach (var gm in SceneGeometry.PaintOrder(f.Geoms)) DrawCard(canvas, gm, f);
+        if (f.Opacity < 1) { _layer.Color = SKColors.White.WithAlpha((byte)(255 * f.Opacity)); canvas.SaveLayer(_layer); }
+        foreach (var gm in f.PaintOrder) DrawCard(canvas, gm, f);
         DrawLinks(canvas, f);
         if (f.Opacity < 1) canvas.Restore();
     }
@@ -104,7 +106,7 @@ public sealed class SceneRenderer : IDisposable
         if (c.Kind != "feature") { _fill.Color = _p.Paper; canvas.DrawRoundRect(face, _fill); }
         _stroke.StrokeWidth = 1;
         _stroke.Color = isFocus ? _p.Focus : isHover ? _p.Ink2 : _p.Rule;
-        _stroke.PathEffect = c.Kind == "feature" ? _dashBorder : null;
+        _stroke.PathEffect = c.Kind == "feature" ? _dash : null;
         canvas.DrawRoundRect(face, _stroke);
         _stroke.PathEffect = null;
         if (isFocus)
@@ -375,13 +377,17 @@ public sealed class SceneRenderer : IDisposable
             _stroke.Color = dim ? color.WithAlpha(64) : color;
             _stroke.StrokeWidth = hot ? 1.75f : 1f;
             _stroke.PathEffect = l.Inferred ? _dash : null;
+            SKPathEffect? trim = null, composed = null;
             if (f.DrawT < 1)
             {
-                using var trim = SKPathEffect.CreateTrim(0, f.DrawT);
-                _stroke.PathEffect = l.Inferred ? SKPathEffect.CreateCompose(_dash, trim) : trim;
+                trim = SKPathEffect.CreateTrim(0, f.DrawT);
+                composed = l.Inferred ? SKPathEffect.CreateCompose(_dash, trim) : null;
+                _stroke.PathEffect = composed ?? trim;
             }
             canvas.DrawPath(path, _stroke);
             _stroke.PathEffect = null;
+            composed?.Dispose();
+            trim?.Dispose();
             _stroke.StrokeWidth = 1;
             if (l.Arrow && f.DrawT >= 1)
             {
