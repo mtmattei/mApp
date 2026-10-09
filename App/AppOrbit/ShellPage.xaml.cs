@@ -28,7 +28,7 @@ public sealed partial class ShellPage : Page
         Loaded += OnLoaded;
         PreviewKeyDown += OnKeyDown;
         ViewerSlot.SizeChanged += (_, _) => PlaceViewer();
-        Shell.SizeChanged += (_, _) => PlaceViewer();
+        Shell.SizeChanged += (_, _) => { ApplyBreakpoints(); PlaceViewer(); };
         ActualThemeChanged += (_, _) => ApplyPalette();
     }
 
@@ -64,8 +64,12 @@ public sealed partial class ShellPage : Page
 
         _ = EnsureWindowSizeAsync();
 
-        // first paint
-        _store.Dispatch(s => s with { SceneVersion = 1 });
+        // first paint, honouring a deep link
+        var deep = App.LaunchFocus;
+        if (deep != null && _graph.Node(deep) is { } target)
+            _store.Dispatch(s => s with { FocusId = deep, Trail = ImmutableList.Create(deep), Editor = target.Source != null ? new EditorState(target.Source.File, target.Source.Line) : s.Editor, SceneVersion = 1 });
+        else
+            _store.Dispatch(s => s with { SceneVersion = 1 });
         _dock?.Place();
         Stage.ResetCamera(_store.State.View);
         FocusViewer();
@@ -76,11 +80,11 @@ public sealed partial class ShellPage : Page
     internal async Task EnsureWindowSizeAsync()
     {
         var want = App.DesiredSize;
-        for (var i = 0; i < 12 && App.Current != null; i++)
+        for (var i = 0; i < 12 && App.Window != null; i++)
         {
             var size = XamlRoot?.Size ?? new Windows.Foundation.Size(0, 0);
             if (Math.Abs(size.Width - want.Width) < 2 && Math.Abs(size.Height - want.Height) < 2) return;
-            try { App.Current.AppWindow.Resize(want); } catch { }
+            try { App.Window.AppWindow.Resize(want); } catch { }
             await Task.Delay(250);
         }
     }
@@ -253,6 +257,18 @@ public sealed partial class ShellPage : Page
         AutomationProperties.SetItemStatus(b, on ? "selected" : "");
     }
 
+    /// <summary>The prototype's breakpoints: the inspector narrows to 280 under 1400; under 1100 the editor collapses while expanded.</summary>
+    private void ApplyBreakpoints()
+    {
+        if (_store == null) return;
+        var w = ActualWidth;
+        var docked = _store.State.Mode == Modes.Docked;
+        var inspectorW = w < 1400 ? 280 : 320;
+        if (!docked) InspectorColumn.Width = new GridLength(inspectorW);
+        EditorColumn.Width = w < 1100 && !docked ? new GridLength(0) : Res<GridLength>("EditorWidth");
+        Editor.Visibility = w < 1100 && !docked ? Visibility.Collapsed : Visibility.Visible;
+    }
+
     /// <summary>Docked: the slot column collapses, the inspector takes the width, the viewer's chrome changes.</summary>
     private void ApplyMode(string mode)
     {
@@ -363,7 +379,7 @@ public sealed partial class ShellPage : Page
 
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (_store == null) return;
+        if (_store == null || XamlRoot == null) return;
         var focused = FocusManager.GetFocusedElement(XamlRoot) as DependencyObject;
         var typing = focused is TextBox;
         if (typing && e.Key != VirtualKey.Escape) return;

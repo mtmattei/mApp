@@ -1,7 +1,8 @@
 # App Orbit (Uno) — Spec
 
-**Status:** in progress. Target: parity with the web prototype one folder up
-(`../SPEC.md`, `../tests/smoke.mjs`). The prototype's Design and Interaction
+**Status:** implemented. Parity with the web prototype one folder up
+(`../SPEC.md`, `../tests/smoke.mjs`) is checked by the three gates below; the
+results are in README.md. The prototype's Design and Interaction
 briefs are the reference for *what* the app does; this spec says *how* the Uno
 app does it and only restates behaviour where the platform changes it.
 
@@ -291,23 +292,33 @@ Scene/Palette.cs  ← the same keys, snapshotted to SKColor per theme
 
 ## Implementation Plan
 
-1. Scaffold (this spec, project from the exploded skeleton, tokens), build green. ✔ when `dotnet build` passes.
-2. Graph records + index + queries; Layout port; `tools/dump-layouts.mjs` + `tools/LayoutCheck` with zero diffs.
-3. Scene renderer: camera, cards of every kind, previews (wire and UI), links with labels and arrows, hit regions, hover/focus/cursor rings; first Xvfb screenshot.
-4. Shell: top bar, breadcrumb, search, lens tabs, toggles, inspector, editor, help; journeys 1–3 pass in the runner.
-5. Input: wheel zoom, orbit drag, card drag + offsets, keyboard map, flat view, reduced motion, fidelity.
-6. Docking: lift, carry, pull, ghost, settle, D; reduced motion in one step.
-7. Orbit figure in the inspector (Iso.cs from exploded).
-8. Parity pass over the smoke checklist and screenshots; README for the app.
+1. ✔ Scaffold (this spec, project from the exploded skeleton, tokens), build green.
+2. ✔ Graph records + index + queries; Layout port; `tools/dump-layouts.mjs` + `tools/LayoutCheck`: 888 cases, zero diffs.
+3. ✔ Scene renderer: camera, cards of every kind, previews (wire and UI), links with labels and arrows, hit regions, hover/focus/cursor rings.
+4. ✔ Shell: top bar, breadcrumb, search, lens tabs, toggles, inspector, editor, help; journeys 1–3 pass in the runner.
+5. ✔ Input: wheel zoom, orbit drag, card drag + offsets, keyboard map, flat view, reduced motion, fidelity.
+6. ✔ Docking: lift, carry, pull, ghost, settle, D; reduced motion in one step.
+7. ✔ Orbit figure in the inspector (Iso.cs from exploded).
+8. ✔ Parity pass: 70 journey checks in both themes, screenshots per stop, README for the app.
+
+## What was learned building it
+
+- A page's `Resources` indexer does not see App.xaml or the theme entries; code-behind resolves
+  tokens through the application dictionary and the active theme (Shell/Res.cs).
+- Lightweight-styling keys for the stock templates only take at the application level, and a
+  checked `ToggleButton` keeps its accent fill either way; the lens tabs and toggles are buttons
+  whose pressed look the page sets.
+- `CompositionTarget.Rendering` starved the springs on X11 (four frames in 450 ms once nothing
+  else was dirty); one dispatcher timer at 16 ms drives every animation and stops when idle.
+- `AppWindow.Resize` after creation races the X11 surface; `ApplicationView.PreferredLaunchViewSize`
+  before the window exists is deterministic, with a re-ask loop as the fallback.
+- `SKCanvasElement` is not focusable; a `ContentControl` host with `IsTabStop` carries the keyboard.
 
 ## Risks
 
-- API: keyboard focus on `SKCanvasElement` (a FrameworkElement, not a Control) — spike 10 min: wrap in a `UserControl` with `IsTabStop` and handle `KeyDown` there.
-- API: `PointerWheelChanged` delta sign and units on Skia desktop — spike 5 min.
-- API: `ApplicationData.LocalSettings` on Linux desktop — spike 5 min; fallback is a JSON file under `ApplicationData.LocalFolder`.
-- API: `Application.Current.Resources[key]` returning the active theme's value for a ThemeDictionaries key on Uno — spike 5 min; fallback is reading the dictionary by theme name.
-- Rendering: text under Xvfb uses DejaVu; glyph widths differ from Windows, so layout numbers come from the layout module, never from measured text.
-- Perf: a frame loop held during idle costs a core (gotcha) — subscribe `CompositionTarget.Rendering` only while animating.
+- Resolved: keyboard focus (ContentControl host), wheel delta (+120 per notch up), LocalSettings on Linux (works; guarded), theme resources (read by theme name), the frame loop (dispatcher timer).
+- Open: text on Linux uses Liberation Sans, narrower than DejaVu but wider than Segoe UI; a short head can still truncate on the `sm` frame. Layout numbers never depend on measured text.
+- Open: the Win32 host has not run in this container; the first Windows run should check the window size, the wheel direction and the dock springs by hand.
 
 ## Unresolved Questions
 

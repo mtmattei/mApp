@@ -33,6 +33,13 @@ picks the matching lens.
 
 ![Checkout, behaviour lens](tests/screenshots/04-checkout-behavior.png)
 
+## The Uno Platform version
+
+[`App/`](App/README.md) is the same inspector as an Uno Platform app
+(`net10.0-desktop`): the graph and the layout rules are shared, the viewer is
+drawn with SkiaSharp through the same camera maths, and a layout fixture plus
+a journey runner check it against this prototype.
+
 ## Run it
 
 The page uses ES modules and fetches the graph as JSON, so it needs an HTTP

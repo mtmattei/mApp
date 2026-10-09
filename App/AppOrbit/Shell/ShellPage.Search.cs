@@ -15,7 +15,7 @@ public sealed partial class ShellPage
     {
         SearchBox.TextChanged += (_, _) => { _hits = G.Search(SearchBox.Text); _selected = 0; RenderSearch(); };
         SearchBox.GotFocus += (_, _) => { _hits = G.Search(SearchBox.Text); RenderSearch(); };
-        SearchBox.LostFocus += (_, _) => DispatcherQueue.TryEnqueue(async () => { await Task.Delay(120); if (FocusManager.GetFocusedElement(XamlRoot) != SearchBox) CloseSearch(); });
+        SearchBox.LostFocus += (_, _) => DispatcherQueue.TryEnqueue(async () => { await Task.Delay(120); if (XamlRoot != null && FocusManager.GetFocusedElement(XamlRoot) != SearchBox) CloseSearch(); });
         SearchBox.KeyDown += (_, e) =>
         {
             switch (e.Key)

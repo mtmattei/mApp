@@ -4,6 +4,9 @@ namespace AppOrbit;
 public sealed partial class ShellPage
 {
     private ContentDialog? _help;
+    internal bool HelpOpen => _help != null;
+    internal Task ShowHelpForJourney() => ShowHelpAsync();
+    internal void HideHelp() => _help?.Hide();
 
     private async Task ShowHelpAsync()
     {

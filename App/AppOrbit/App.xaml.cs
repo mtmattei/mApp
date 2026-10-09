@@ -20,7 +20,6 @@ public partial class App : Application
         try
         {
             Windows.UI.ViewManagement.ApplicationView.PreferredLaunchViewSize = new Windows.Foundation.Size(w, h);
-            Windows.UI.ViewManagement.ApplicationView.PreferredLaunchWindowingMode = Windows.UI.ViewManagement.ApplicationViewWindowingMode.PreferredLaunchViewSize;
         }
         catch { }
     }
@@ -30,12 +29,16 @@ public partial class App : Application
     /// <summary>The window size asked for at launch; the shell asks again until the XAML root reports it (X11 applies a resize intermittently).</summary>
     public static Windows.Graphics.SizeInt32 DesiredSize { get; private set; }
 
-    public static Window? Current { get; private set; }
+    public static Window? Window { get; private set; }
+
+    /// <summary>An entity to open on, from --focus=&lt;id&gt; or APP_ORBIT_FOCUS: the web prototype's #entity-id deep link.</summary>
+    public static string? LaunchFocus { get; private set; }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        MainWindow = new Window();
-        Current = MainWindow;
+        MainWindow = new Window { Title = "App Orbit" };
+        Window = MainWindow;
+        LaunchFocus = (args.Arguments ?? "").Split(' ').Select(a => a.StartsWith("--focus=") ? a[8..] : null).FirstOrDefault(a => a != null) ?? Environment.GetEnvironmentVariable("APP_ORBIT_FOCUS");
 #if DEBUG
         // UseStudio() blocks the window when no DevServer is reachable, so headless runs opt out.
         if (Environment.GetEnvironmentVariable("APP_NO_HOTDESIGN") != "1")

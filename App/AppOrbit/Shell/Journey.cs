@@ -253,6 +253,13 @@ internal static class Journey
         Check(S().ReducedMotion, "reduced motion toggles on");
         page.ToggleMotion();
 
+        // the shortcut sheet
+        _ = page.ShowHelpForJourney(); await Settle(600);
+        Check(page.HelpOpen, "? opens the shortcut sheet");
+        await Shot("11-help");
+        page.HideHelp(); await Settle(300);
+        Check(!page.HelpOpen, "Esc closes it");
+
         page.Focus(null); await Settle();
         page.StageForJourney.StepCursor(1); await Settle(100);
         page.ZoomIn(); await Settle();
