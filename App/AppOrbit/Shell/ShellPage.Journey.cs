@@ -30,6 +30,9 @@ public sealed partial class ShellPage
         if (covering.Count > 0) Focus(covering[0].Id, line);
     }
 
+    /// <summary>The entity under the projected centre of a card's sub-element or face, as a pointer would find it.</summary>
+    internal string? HitAtCenterOf(string cardKey, string? anchorKey = null) => Stage.HitAtAnchor(anchorKey ?? $"{cardKey}:c");
+
     internal Windows.Foundation.Size ViewerSize => new(Viewer.ActualWidth, Viewer.ActualHeight);
     internal double InspectorWidth => InspectorScroll.ActualWidth;
 

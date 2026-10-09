@@ -2,7 +2,6 @@ using AppOrbit.Graph;
 using AppOrbit.Layout;
 using AppOrbit.Scene;
 using AppOrbit.State;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.Storage;
@@ -60,12 +59,27 @@ public sealed partial class ShellPage : Page
         BuildEditorFiles();
         _store.Changed += OnStateChanged;
 
+        _ = EnsureWindowSizeAsync();
+
         // first paint
         _store.Dispatch(s => s with { SceneVersion = 1 });
         PlaceViewer();
         Stage.ResetCamera(_store.State.View);
-        Stage.Focus(FocusState.Programmatic);
+        FocusViewer();
         Journey.Start(this);
+    }
+
+    /// <summary>Re-asks for the launch size until the root reports it, a few times at most.</summary>
+    internal async Task EnsureWindowSizeAsync()
+    {
+        var want = App.DesiredSize;
+        for (var i = 0; i < 12 && App.Current != null; i++)
+        {
+            var size = XamlRoot?.Size ?? new Windows.Foundation.Size(0, 0);
+            if (Math.Abs(size.Width - want.Width) < 2 && Math.Abs(size.Height - want.Height) < 2) return;
+            try { App.Current.AppWindow.Resize(want); } catch { }
+            await Task.Delay(250);
+        }
     }
 
     private static async Task<string> ReadGraphAsync()
@@ -137,8 +151,11 @@ public sealed partial class ShellPage : Page
 
     // ---------------------------------------------------------------- scene wiring
 
+    internal void FocusViewer() => StageHost.Focus(FocusState.Programmatic);
+
     private void WireScene()
     {
+        Stage.AddHandler(PointerPressedEvent, new PointerEventHandler((_, _) => StageHost.Focus(FocusState.Pointer)), true);
         Stage.FocusRequested += id => Focus(id);
         Stage.HoverChanged += Hover;
         Stage.CursorChanged += id => Store.Dispatch(s => s.CursorId == id ? s : s with { CursorId = id });
@@ -152,15 +169,15 @@ public sealed partial class ShellPage : Page
 
     private void OnStateChanged(AppState s, AppState prev)
     {
-        FidelityButton.IsChecked = s.Fidelity == Fidelities.Ui;
         FidelityButton.Content = s.Fidelity == Fidelities.Ui ? "UI" : "Wire";
-        ViewButton.IsChecked = s.View == Views.Flat;
-        ModeButton.IsChecked = s.Mode == Modes.Docked;
-        MotionButton.IsChecked = s.ReducedMotion;
-        LensStructure.IsChecked = s.Lens == Lens.Structure;
-        LensNavigation.IsChecked = s.Lens == Lens.Navigation;
-        LensBehavior.IsChecked = s.Lens == Lens.Behavior;
-        LensStates.IsChecked = s.Lens == Lens.States;
+        Pressed(FidelityButton, s.Fidelity == Fidelities.Ui);
+        Pressed(ViewButton, s.View == Views.Flat);
+        Pressed(ModeButton, s.Mode == Modes.Docked);
+        Pressed(MotionButton, s.ReducedMotion);
+        Tab(LensStructure, s.Lens == Lens.Structure);
+        Tab(LensNavigation, s.Lens == Lens.Navigation);
+        Tab(LensBehavior, s.Lens == Lens.Behavior);
+        Tab(LensStates, s.Lens == Lens.States);
 
         if (s.SceneVersion != _lastScene || s.Mode != _lastMode || s.View != _lastView || s.Lens != _lastLens)
         {
@@ -182,6 +199,23 @@ public sealed partial class ShellPage : Page
         if (s.Editor != prev.Editor || s.FocusId != prev.FocusId || s.SceneVersion != prev.SceneVersion) RenderEditor(s);
         if (s.SearchOpen != prev.SearchOpen && !s.SearchOpen) CloseSearch();
         if (s.Lens != prev.Lens || s.Mode != prev.Mode || s.View != prev.View || s.ReducedMotion != prev.ReducedMotion || s.Fidelity != prev.Fidelity || s.WorkspaceRoot != prev.WorkspaceRoot) Prefs.Save(s);
+    }
+
+    /// <summary>A shell toggle's pressed look: paper-2, ink, an ink-3 border (the prototype's aria-pressed style).</summary>
+    private void Pressed(Button b, bool on)
+    {
+        b.Background = Res<Brush>(on ? "Paper2" : "Paper");
+        b.Foreground = Res<Brush>(on ? "Ink" : "Ink2");
+        b.BorderBrush = Res<Brush>(on ? "Ink3" : "Rule");
+        AutomationProperties.SetItemStatus(b, on ? "on" : "off");
+    }
+
+    /// <summary>A lens tab's selected look: paper on the paper-2 track, ink text.</summary>
+    private void Tab(Button b, bool on)
+    {
+        b.Background = on ? Res<Brush>("Paper") : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        b.Foreground = Res<Brush>(on ? "Ink" : "Ink2");
+        AutomationProperties.SetItemStatus(b, on ? "selected" : "");
     }
 
     /// <summary>Docked: the slot column collapses, the inspector takes the width, the viewer's chrome changes.</summary>
@@ -279,7 +313,7 @@ public sealed partial class ShellPage : Page
 
     // ---------------------------------------------------------------- controls
 
-    private void OnLensTab(object sender, RoutedEventArgs e) { if (sender is ToggleButton t && t.Tag is string lens) SetLens(lens); }
+    private void OnLensTab(object sender, RoutedEventArgs e) { if (sender is Button t && t.Tag is string lens) SetLens(lens); }
     private void OnToggleFidelity(object sender, RoutedEventArgs e) => ToggleFidelity();
     private void OnToggleView(object sender, RoutedEventArgs e) => ToggleView();
     private void OnToggleMotion(object sender, RoutedEventArgs e) => ToggleMotion();
@@ -305,7 +339,7 @@ public sealed partial class ShellPage : Page
             case VirtualKey.Divide: case (VirtualKey)191: SearchBox.Focus(FocusState.Keyboard); SearchBox.SelectAll(); break;
             case VirtualKey.Add: case (VirtualKey)187: ZoomIn(); break;
             case VirtualKey.Subtract: case (VirtualKey)189: case VirtualKey.Back: ZoomOut(); break;
-            case VirtualKey.Escape: if (typing) { CloseSearch(); Stage.Focus(FocusState.Programmatic); } else Focus(_store.State.FocusId); break;
+            case VirtualKey.Escape: if (typing) { CloseSearch(); FocusViewer(); } else Focus(_store.State.FocusId); break;
             case VirtualKey.Number0: case VirtualKey.NumberPad0: Stage.ResetCamera(); break;
             case VirtualKey.Number1: SetLens(Lens.Structure); break;
             case VirtualKey.Number2: SetLens(Lens.Navigation); break;

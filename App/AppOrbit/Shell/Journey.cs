@@ -68,8 +68,11 @@ internal static class Journey
 
     private static async Task RunAsync(ShellPage page)
     {
-        await Task.Delay(1200);
+        await Task.Delay(600);
+        await page.EnsureWindowSizeAsync();
+        await Task.Delay(600);
         var store = page.StoreForJourney;
+        Log($"window {page.XamlRoot?.Size.Width:0}x{page.XamlRoot?.Size.Height:0}");
         var g = store.Graph;
         AppState S() => store.State;
         LayoutResult L() => LayoutEngine.Compute(g, S());
@@ -85,6 +88,8 @@ internal static class Journey
         Check(Cards("feature") == 3, "application level shows 3 features");
         Check(L().Cards.Where(c => c.Kind == "feature").Sum(c => c.Screens!.Count) == 5, "application level shows 5 screens");
         await Shot("01-application");
+        Check(page.HitAtCenterOf("feature.purchase", "feature.purchase:t") == "feature.purchase", "a press on the Purchase plate's head hits the feature");
+        Check(page.HitAtCenterOf("feature.purchase", "feature.purchase/screen.checkout:c") == "screen.checkout", "a press on the Checkout thumbnail hits the screen");
         page.Focus("feature.purchase"); await Settle();
         Check(S().FocusId == "feature.purchase", "click a feature plate → feature level");
         Check(Crumb().Contains("Purchase"), "breadcrumb shows Purchase");
@@ -124,6 +129,8 @@ internal static class Journey
         Check(bindLinks == 8, $"seven bindings and one command connector ({bindLinks})");
         await Shot("04-checkout-behavior");
 
+        Check(page.HitAtCenterOf("screen.checkout", "screen.checkout/inst.checkout.place-order:c") == "inst.checkout.place-order", "a press on Place order in the preview hits the instance");
+        Check(page.HitAtCenterOf("vm.cart", "vm.cart/prop.cart.can-place-order:c") == "prop.cart.can-place-order", "a press on a member row hits the member");
         page.Focus("inst.checkout.place-order"); await Settle();
         Check(S().FocusId == "inst.checkout.place-order", "click Place order in the preview → component level");
         var vm = L().Cards.FirstOrDefault(c => c.Kind == "vm");

@@ -101,8 +101,8 @@
   </ResourceDictionary.ThemeDictionaries>
 
   <!-- type: five sizes, one family. Mono is for refs, members and code. -->
-  <FontFamily x:Key="Font.Ui">Segoe UI, system-ui, sans-serif</FontFamily>
-  <FontFamily x:Key="Font.Mono">Cascadia Mono, Consolas, Menlo, monospace</FontFamily>
+  <FontFamily x:Key="Font.Ui">Segoe UI, Liberation Sans, Noto Sans, sans-serif</FontFamily>
+  <FontFamily x:Key="Font.Mono">Cascadia Mono, Consolas, Menlo, Liberation Mono, monospace</FontFamily>
 
   <Style x:Key="T11" TargetType="TextBlock">
     <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />

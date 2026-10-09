@@ -31,7 +31,7 @@
       <StackPanel x:Name="Breadcrumb" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" />
 
       <Grid Grid.Column="2" VerticalAlignment="Center">
-        <TextBox x:Name="SearchBox" Style="{StaticResource SearchBox}" PlaceholderText="Search entities  /" AutomationProperties.Name="Search entities" />
+        <TextBox x:Name="SearchBox" Style="{StaticResource SearchBox}" IsTabStop="True" TabIndex="5" PlaceholderText="Search entities  /" AutomationProperties.Name="Search entities" />
         <Popup x:Name="SearchPopup" IsLightDismissEnabled="False" VerticalOffset="32">
           <Border x:Name="SearchResultsBorder" Width="320" Background="{ThemeResource Paper}" BorderBrush="{ThemeResource Rule}" BorderThickness="1" CornerRadius="6" Padding="4" MaxHeight="320">
             <StackPanel x:Name="SearchResults" />
@@ -41,18 +41,18 @@
 
       <Border x:Name="LensTabs" Grid.Column="3" Background="{ThemeResource Paper2}" BorderBrush="{ThemeResource Rule}" BorderThickness="1" CornerRadius="7" Padding="2" Height="28" VerticalAlignment="Center">
         <StackPanel Orientation="Horizontal" Spacing="2">
-          <ToggleButton x:Name="LensStructure" Content="Structure" Style="{StaticResource LensTab}" Tag="structure" Click="OnLensTab" AutomationProperties.Name="Structure lens" />
-          <ToggleButton x:Name="LensNavigation" Content="Navigation" Style="{StaticResource LensTab}" Tag="navigation" Click="OnLensTab" AutomationProperties.Name="Navigation lens" />
-          <ToggleButton x:Name="LensBehavior" Content="Behavior" Style="{StaticResource LensTab}" Tag="behavior" Click="OnLensTab" AutomationProperties.Name="Behavior lens" />
-          <ToggleButton x:Name="LensStates" Content="States" Style="{StaticResource LensTab}" Tag="states" Click="OnLensTab" AutomationProperties.Name="States lens" />
+          <Button x:Name="LensStructure" Content="Structure" Style="{StaticResource LensTab}" Tag="structure" Click="OnLensTab" AutomationProperties.Name="Structure lens" />
+          <Button x:Name="LensNavigation" Content="Navigation" Style="{StaticResource LensTab}" Tag="navigation" Click="OnLensTab" AutomationProperties.Name="Navigation lens" />
+          <Button x:Name="LensBehavior" Content="Behavior" Style="{StaticResource LensTab}" Tag="behavior" Click="OnLensTab" AutomationProperties.Name="Behavior lens" />
+          <Button x:Name="LensStates" Content="States" Style="{StaticResource LensTab}" Tag="states" Click="OnLensTab" AutomationProperties.Name="States lens" />
         </StackPanel>
       </Border>
 
       <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <ToggleButton x:Name="FidelityButton" Content="Wire" Style="{StaticResource ShellToggle}" Click="OnToggleFidelity" AutomationProperties.Name="Wireframe or UI previews (W)" />
-        <ToggleButton x:Name="ViewButton" Content="Flat" Style="{StaticResource ShellToggle}" Click="OnToggleView" AutomationProperties.Name="Flat view (F)" />
-        <ToggleButton x:Name="MotionButton" Content="Motion" Style="{StaticResource ShellToggle}" Click="OnToggleMotion" AutomationProperties.Name="Reduce motion" />
-        <ToggleButton x:Name="ModeButton" Content="Dock" Style="{StaticResource ShellToggle}" Click="OnToggleMode" AutomationProperties.Name="Dock the viewer (D)" />
+        <Button x:Name="FidelityButton" Content="Wire" Style="{StaticResource ShellButton}" Click="OnToggleFidelity" AutomationProperties.Name="Wireframe or UI previews (W)" />
+        <Button x:Name="ViewButton" Content="Flat" Style="{StaticResource ShellButton}" Click="OnToggleView" AutomationProperties.Name="Flat view (F)" />
+        <Button x:Name="MotionButton" Content="Motion" Style="{StaticResource ShellButton}" Click="OnToggleMotion" AutomationProperties.Name="Reduce motion" />
+        <Button x:Name="ModeButton" Content="Dock" Style="{StaticResource ShellButton}" Click="OnToggleMode" AutomationProperties.Name="Dock the viewer (D)" />
         <Button x:Name="HelpButton" Content="?" Style="{StaticResource IconButton}" Click="OnToggleHelp" AutomationProperties.Name="Keyboard shortcuts" />
       </StackPanel>
     </Grid>
@@ -91,7 +91,9 @@
         <Border x:Name="DockGhost" BorderBrush="{ThemeResource Ink3}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed" IsHitTestVisible="False" />
 
         <Grid x:Name="Viewer" Background="{ThemeResource Paper}" AutomationProperties.Name="Orbital viewer">
-          <scene:SceneCanvas x:Name="Stage" />
+          <ContentControl x:Name="StageHost" IsTabStop="True" UseSystemFocusVisuals="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" AutomationProperties.Name="Orbital viewer">
+            <scene:SceneCanvas x:Name="Stage" />
+          </ContentControl>
 
           <Grid x:Name="ViewerHead" VerticalAlignment="Top" Padding="12,8" ColumnSpacing="12" Background="Transparent">
             <Grid.ColumnDefinitions>

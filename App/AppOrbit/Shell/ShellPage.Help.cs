@@ -50,7 +50,7 @@ public sealed partial class ShellPage
             var text = box.Text.Trim();
             Store.Dispatch(s => s.WorkspaceRoot == text ? s : s with { WorkspaceRoot = text, SceneVersion = s.SceneVersion + 1 });
             _help = null;
-            Stage.Focus(FocusState.Programmatic);
+            FocusViewer();
         }
     }
 }

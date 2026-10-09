@@ -240,6 +240,18 @@ public sealed partial class SceneCanvas : SKCanvasElement
         CursorChanged?.Invoke(_tabOrder[i]);
     }
 
+    /// <summary>For the journey runner: the id a press at a projected anchor would hit.</summary>
+    public string? HitAtAnchor(string anchorKey)
+    {
+        foreach (var gm in _geoms)
+        {
+            if (!gm.Anchors.TryGetValue(anchorKey, out var local)) continue;
+            var (x, y, _) = gm.M.Project(local.X, local.Y);
+            return SceneGeometry.HitTest(_geoms, new SKPoint((float)x, (float)y))?.Hit.Id;
+        }
+        return null;
+    }
+
     // ---------------------------------------------------------------- pointer
 
     private (CardGeom Geom, HitRegion Hit)? HitAt(Point p) => SceneGeometry.HitTest(_geoms, new SKPoint((float)p.X, (float)p.Y));
@@ -252,7 +264,6 @@ public sealed partial class SceneCanvas : SKCanvasElement
         var key = hit?.Geom.Card.Key;
         var (bx, by) = key != null ? OffsetOf(key) : (0, 0);
         _drag = new Drag { Start = pt.Position, Yaw = _cam.TargetYaw, Pitch = _cam.TargetPitch, PointerId = e.Pointer.PointerId, Key = key, BaseX = bx, BaseY = by };
-        Focus(FocusState.Programmatic);
         e.Handled = true;
     }
 

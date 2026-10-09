@@ -23,7 +23,7 @@ public sealed partial class ShellPage
                 case VirtualKey.Down: _selected = Math.Min(_hits.Count - 1, _selected + 1); RenderSearch(); e.Handled = true; break;
                 case VirtualKey.Up: _selected = Math.Max(0, _selected - 1); RenderSearch(); e.Handled = true; break;
                 case VirtualKey.Enter: if (_selected < _hits.Count) { PickSearch(_hits[_selected].Id); e.Handled = true; } break;
-                case VirtualKey.Escape: SearchBox.Text = ""; CloseSearch(); Stage.Focus(FocusState.Programmatic); e.Handled = true; break;
+                case VirtualKey.Escape: SearchBox.Text = ""; CloseSearch(); FocusViewer(); e.Handled = true; break;
             }
         };
     }
@@ -70,7 +70,7 @@ public sealed partial class ShellPage
     {
         Focus(id);
         CloseSearch();
-        Stage.Focus(FocusState.Programmatic);
+        FocusViewer();
     }
 
     private void CloseSearch() => SearchPopup.IsOpen = false;

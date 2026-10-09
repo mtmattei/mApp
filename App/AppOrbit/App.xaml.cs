@@ -12,9 +12,15 @@ public partial class App : Application
 
     protected Window? MainWindow { get; private set; }
 
+    /// <summary>The window size asked for at launch; the shell asks again until the XAML root reports it (X11 applies a resize intermittently).</summary>
+    public static Windows.Graphics.SizeInt32 DesiredSize { get; private set; }
+
+    public static Window? Current { get; private set; }
+
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         MainWindow = new Window();
+        Current = MainWindow;
 #if DEBUG
         // UseStudio() blocks the window when no DevServer is reachable, so headless runs opt out.
         if (Environment.GetEnvironmentVariable("APP_NO_HOTDESIGN") != "1")
@@ -41,7 +47,8 @@ public partial class App : Application
         var size = Environment.GetEnvironmentVariable("APP_ORBIT_SIZE")?.Split('x');
         var w = size?.Length == 2 && int.TryParse(size[0], out var pw) ? pw : 1440;
         var h = size?.Length == 2 && int.TryParse(size[1], out var ph) ? ph : 900;
-        try { MainWindow.AppWindow.Resize(new Windows.Graphics.SizeInt32 { Width = w, Height = h }); } catch { }
+        DesiredSize = new Windows.Graphics.SizeInt32 { Width = w, Height = h };
+        try { MainWindow.AppWindow.Resize(DesiredSize); } catch { }
 
         // The Win32 GL render thread access-violates at degenerate sizes; the shell needs the width anyway.
         if (MainWindow.AppWindow.Presenter is OverlappedPresenter presenter)

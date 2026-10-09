@@ -5,8 +5,8 @@ namespace AppOrbit.Scene;
 /// <summary>The scene's two families, resolved once: the UI stack (Segoe UI on Windows) and the mono stack. Fonts are cached per (family, size, weight, italic).</summary>
 public static class Fonts
 {
-    private static readonly string[] UiFamilies = { "Segoe UI", "Noto Sans", "DejaVu Sans", "Liberation Sans", "Helvetica", "Arial" };
-    private static readonly string[] MonoFamilies = { "Cascadia Mono", "Consolas", "Menlo", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", "Courier New" };
+    private static readonly string[] UiFamilies = { "Segoe UI", "Liberation Sans", "Noto Sans", "Cantarell", "Ubuntu", "Arial", "Helvetica", "DejaVu Sans" };
+    private static readonly string[] MonoFamilies = { "Cascadia Mono", "Consolas", "Menlo", "Liberation Mono", "Noto Sans Mono", "DejaVu Sans Mono", "Courier New" };
 
     private static readonly Dictionary<(bool Mono, int Weight, bool Italic), SKTypeface> Typefaces = new();
     private static readonly Dictionary<(bool Mono, float Size, int Weight, bool Italic), SKFont> Cache = new();

@@ -4,6 +4,7 @@
 
   <!-- Shell controls at the prototype's one control height (28), rule border, 6px radius. -->
 
+
   <Style x:Key="ShellButton" TargetType="Button">
     <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
     <Setter Property="FontSize" Value="12.5" />
@@ -42,7 +43,7 @@
   </Style>
 
   <!-- lens tabs: a flat segmented control inside one paper-2 track -->
-  <Style x:Key="LensTab" TargetType="ToggleButton">
+  <Style x:Key="LensTab" TargetType="Button">
     <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
     <Setter Property="FontSize" Value="12.5" />
     <Setter Property="Foreground" Value="{ThemeResource Ink2}" />
