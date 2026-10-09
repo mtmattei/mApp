@@ -492,3 +492,4 @@ solution-config.props
 !**/Properties/PublishProfiles/*.pubxmlshots/*.png
 shots/*.out
 shots/*.log
+shots-dark/

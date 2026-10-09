@@ -34,6 +34,15 @@ public sealed partial class ShellPage
     internal string? HitAtCenterOf(string cardKey, string? anchorKey = null) => Stage.HitAtAnchor(anchorKey ?? $"{cardKey}:c");
 
     internal Windows.Foundation.Size ViewerSize => new(Viewer.ActualWidth, Viewer.ActualHeight);
+    internal Windows.Foundation.Size ShellSize => new(Shell.ActualWidth, Shell.ActualHeight);
+    internal Windows.Foundation.Point HeadCenterInShell
+    {
+        get
+        {
+            var p = ViewerHead.TransformToVisual(Shell).TransformPoint(new Windows.Foundation.Point(0, 0));
+            return new Windows.Foundation.Point(p.X + ViewerHead.ActualWidth / 2, p.Y + ViewerHead.ActualHeight / 2);
+        }
+    }
     internal double InspectorWidth => InspectorScroll.ActualWidth;
 
     private static string TextOf(UIElement el)

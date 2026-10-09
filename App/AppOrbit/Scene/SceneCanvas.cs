@@ -28,7 +28,7 @@ public sealed partial class SceneCanvas : SKCanvasElement
     private AppState? _state;
     private SceneFrame? _frame;
     private Dictionary<string, Dictionary<string, double[]>> _offsets = new();
-    private bool _rendering;
+    private IDisposable? _loop;
     private double _fade = 1, _draw = 1;
     private long _fadeStart, _drawStart;
     private long _zoomLock;
@@ -151,22 +151,19 @@ public sealed partial class SceneCanvas : SKCanvasElement
 
     private void StartLoop()
     {
-        if (_rendering) return;
-        _rendering = true;
-        CompositionTarget.Rendering += OnRendering;
+        _loop ??= FrameLoop.Start(DispatcherQueue, OnTick);
     }
 
     private void StopLoop()
     {
-        if (!_rendering) return;
-        _rendering = false;
-        CompositionTarget.Rendering -= OnRendering;
+        _loop?.Dispose();
+        _loop = null;
     }
 
-    private void OnRendering(object? sender, object e)
+    private void OnTick(double dt)
     {
         var now = Environment.TickCount64;
-        var moving = _cam.Step();
+        var moving = _cam.Step(dt);
         if (_fade < 1) { _fade = Math.Min(1, (now - _fadeStart) / 180.0); moving = true; }
         if (_draw < 1) { _draw = Math.Min(1, (now - _drawStart) / 240.0); moving = true; }
         Project();

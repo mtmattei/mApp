@@ -83,8 +83,29 @@ internal static class Journey
 
         Log($"graph {g.Raw.GraphId}: {g.Raw.Nodes.Count} nodes, {g.Raw.Edges.Count} edges");
 
+        // ---- 0. The figure in the inspector ----
+        page.Focus(null); page.SetLens(Lens.Structure); await Settle(800);
+        {
+            var fig = page.FigureForJourney;
+            Check(fig != null && fig.ActualWidth > 100, "the orbit figure mounts in the application view");
+            Check(page.FigureRead == "rest", "its read-out says rest");
+            if (fig != null)
+            {
+                fig.SimulatePointer(fig.ActualWidth * 0.55, fig.ActualHeight * 0.78);
+                await Settle(900);
+                var read = page.FigureRead;
+                var m = System.Text.RegularExpressions.Regex.Match(read, @"· (ui|states|behavior|routes) ·");
+                Check(m.Success, $"the figure names the layer under the pointer ({read})");
+                fig.SimulateClick();
+                await Settle(300);
+                var expected = m.Success ? new Dictionary<string, string> { ["ui"] = "structure", ["states"] = "states", ["behavior"] = "behavior", ["routes"] = "navigation" }[m.Groups[1].Value] : "";
+                Check(S().Lens == expected, $"clicking the layer picks its lens ({S().Lens})");
+                await Shot("00-figure");
+            }
+            page.SetLens(Lens.Structure); await Settle();
+        }
+
         // ---- 1. Orientation ----
-        page.Focus(null); page.SetLens(Lens.Structure); await Settle();
         Check(Cards("feature") == 3, "application level shows 3 features");
         Check(L().Cards.Where(c => c.Kind == "feature").Sum(c => c.Screens!.Count) == 5, "application level shows 5 screens");
         await Shot("01-application");
@@ -192,14 +213,42 @@ internal static class Journey
         Check(Math.Abs(page.StageForJourney.Camera.Yaw) < 0.01 && Math.Abs(page.StageForJourney.Camera.Pitch) < 0.01, "flat view has no rotation");
         await Shot("09-flat");
         page.ToggleView(); await Settle();
-        page.ToggleMode(); await Settle(1200);
-        Check(S().Mode == Modes.Docked, "D docks the viewer");
-        Check(S().FocusId == "screen.checkout", "docking keeps the focus");
-        Check(page.ViewerSize.Width is > 379 and < 381 && page.ViewerSize.Height is > 259 and < 261, $"it settles at the slot's exact size ({page.ViewerSize.Width:0}×{page.ViewerSize.Height:0})");
-        Check(page.InspectorWidth > 600, "the inspector takes the width when docked");
-        await Shot("10-docked");
-        page.ToggleMode(); await Settle(1200);
-        Check(S().Mode == Modes.Expanded, "and D expands it again");
+        // ---- docking: pick the viewer up by its head, carry it to the slot, let it settle ----
+        {
+            var dock = page.DockForJourney!;
+            var head = page.HeadCenterInShell;
+            dock.Lift(new Windows.Foundation.Point(head.X, head.Y));
+            dock.Carry(new Windows.Foundation.Point(head.X + 12, head.Y + 12));
+            await Settle(450); // the prototype reads at 250ms; a software renderer gives this loop a quarter of the frames
+            Log($"note: dock loop {dock.Ticks} ticks in {dock.Elapsed * 1000:0}ms");
+            Check(dock.Phase == "lifted" && dock.Width < 450, $"lifting shrinks the viewer to carry size ({dock.Width:0}px)");
+            Check(dock.GhostState == "holder", "the holder it came from stays drawn");
+            Check(S().Carrying, "the scene takes its compact form at pick-up");
+            await Shot("10a-lifted");
+            var shell = page.ShellSize;
+            var target = new Windows.Foundation.Point(shell.Width - 16 - 190, shell.Height - 16 - 250 + 48);
+            for (var i = 1; i <= 16; i++) { dock.Carry(new Windows.Foundation.Point(head.X + (target.X - head.X) * i / 16, head.Y + (target.Y - head.Y) * i / 16)); await Task.Delay(16); }
+            await Settle(350);
+            Check(S().Mode == Modes.Docked, "approaching the slot previews the docked layout");
+            Check(page.InspectorWidth > 600, "the inspector widens as the viewer approaches the dock");
+            Check(dock.GhostState == "show", "the slot ghost shows where it will land");
+            await Shot("10b-approach");
+            dock.Release();
+            await Settle(1200);
+            Check(S().Mode == Modes.Docked && !dock.IsMoving, "release settles the viewer in the dock");
+            Check(page.ViewerSize.Width is > 379 and < 381 && page.ViewerSize.Height is > 259 and < 261, $"it settles at the slot's exact size ({page.ViewerSize.Width:0}×{page.ViewerSize.Height:0})");
+            Check(S().FocusId == "screen.checkout", "docking keeps the focus");
+            await Shot("10-docked");
+            page.ToggleMode(); await Task.Delay(120);
+            Check(dock.IsMoving, "D flies the viewer back along the same path");
+            await Settle(1200);
+            Check(S().Mode == Modes.Expanded && !dock.IsMoving, "and it lands expanded");
+            page.ToggleMotion(); page.ToggleMode(); await Task.Delay(120);
+            Check(!dock.IsMoving && S().Mode == Modes.Docked, "reduced motion: docking resolves in one step");
+            page.ToggleMode(); await Task.Delay(120);
+            page.ToggleMotion(); await Settle();
+            Check(S().Mode == Modes.Expanded, "and back");
+        }
         page.ToggleMotion(); page.Focus("screen.cart"); await Settle();
         Check(S().ReducedMotion, "reduced motion toggles on");
         page.ToggleMotion();

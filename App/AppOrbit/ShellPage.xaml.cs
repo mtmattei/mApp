@@ -1,3 +1,4 @@
+using AppOrbit.Dock;
 using AppOrbit.Graph;
 using AppOrbit.Layout;
 using AppOrbit.Scene;
@@ -16,6 +17,7 @@ namespace AppOrbit;
 public sealed partial class ShellPage : Page
 {
     private Store? _store;
+    private DockController? _dock;
     private GraphIndex? _graph;
     private int _lastScene = -1;
     private string? _lastMode, _lastView, _lastLens;
@@ -56,6 +58,7 @@ public sealed partial class ShellPage : Page
         ApplyPalette();
         WireScene();
         WireSearch();
+        WireDock();
         BuildEditorFiles();
         _store.Changed += OnStateChanged;
 
@@ -63,7 +66,7 @@ public sealed partial class ShellPage : Page
 
         // first paint
         _store.Dispatch(s => s with { SceneVersion = 1 });
-        PlaceViewer();
+        _dock?.Place();
         Stage.ResetCamera(_store.State.View);
         FocusViewer();
         Journey.Start(this);
@@ -99,7 +102,9 @@ public sealed partial class ShellPage : Page
     private void ApplyPalette()
     {
         if (_graph == null) return;
-        Stage.Attach(_graph, Palette.FromResources(ActualTheme == ElementTheme.Dark));
+        var palette = Palette.FromResources(ActualTheme == ElementTheme.Dark);
+        Stage.Attach(_graph, palette);
+        _figure?.SetPalette(palette);
     }
 
     // ---------------------------------------------------------------- actions (main.js)
@@ -143,7 +148,8 @@ public sealed partial class ShellPage : Page
     internal void SetLens(string lens) => Store.Dispatch(s => s.Lens == lens ? s : s with { Lens = lens, SceneVersion = s.SceneVersion + 1 });
     internal void ToggleView() => Store.Dispatch(s => s with { View = s.View == Views.Orbit ? Views.Flat : Views.Orbit, SceneVersion = s.SceneVersion + 1 });
     internal void SetMode(string mode) => Store.Dispatch(s => s.Mode == mode ? s : s with { Mode = mode, SceneVersion = s.SceneVersion + 1 });
-    internal void ToggleMode() => SetMode(Store.State.Mode == Modes.Docked ? Modes.Expanded : Modes.Docked);
+    internal void ToggleMode() { if (_dock != null) _dock.Toggle(); else SetMode(Store.State.Mode == Modes.Docked ? Modes.Expanded : Modes.Docked); }
+    internal DockController? DockForJourney => _dock;
     internal void ToggleMotion() => Store.Dispatch(s => s with { ReducedMotion = !s.ReducedMotion });
     internal void ToggleFidelity() => Store.Dispatch(s => s with { Fidelity = s.Fidelity == Fidelities.Ui ? Fidelities.Wire : Fidelities.Ui, SceneVersion = s.SceneVersion + 1 });
     internal void Hover(string? id) => Store.Dispatch(s => s.HoverId == id ? s : s with { HoverId = id });
@@ -152,6 +158,34 @@ public sealed partial class ShellPage : Page
     // ---------------------------------------------------------------- scene wiring
 
     internal void FocusViewer() => StageHost.Focus(FocusState.Programmatic);
+
+    private void WireDock()
+    {
+        _dock = new DockController(new DockHost
+        {
+            Viewer = Viewer, Ghost = DockGhost, Head = ViewerHead, Shell = Shell,
+            HomeOf = mode => { var r = HomeRect(mode); return new Home(r.X, r.Y, r.Width, r.Height, mode == Modes.Docked ? 210 : 0); },
+            GetMode = () => Store.State.Mode,
+            SetMode = SetMode,
+            ReducedMotion = () => Store.State.ReducedMotion,
+            SetCarrying = on => Store.Dispatch(s => s.Carrying == on ? s : s with { Carrying = on, SceneVersion = s.SceneVersion + 1 }),
+            SetFloating = (floating, lifted) =>
+            {
+                var docked = Store.State.Mode == Modes.Docked;
+                Viewer.BorderThickness = new Thickness(floating || docked ? 1 : 0);
+                Viewer.CornerRadius = new CornerRadius(floating || docked ? 8 : 0);
+                Canvas.SetZIndex(Viewer, lifted ? 30 : docked ? 10 : 4);
+                ViewerFoot.Visibility = floating || docked ? Visibility.Collapsed : Visibility.Visible;
+                ViewerNote.Visibility = floating || docked ? Visibility.Collapsed : Visibility.Visible;
+                ViewerTitle.Visibility = floating || docked ? Visibility.Visible : Visibility.Collapsed;
+            },
+            GhostDashed = () => Res<Brush>("Ink3"),
+            GhostHolder = () => (Res<Brush>("Rule"), Res<Brush>("Paper2")),
+            GhostHard = () => (Res<Brush>("Focus"), Res<Brush>("FocusSoft")),
+        });
+        Canvas.SetZIndex(DockGhost, 3);
+        Canvas.SetZIndex(Viewer, 4);
+    }
 
     private void WireScene()
     {
@@ -197,6 +231,7 @@ public sealed partial class ShellPage : Page
             Stage.UpdateHighlights(s);
         }
         if (s.Editor != prev.Editor || s.FocusId != prev.FocusId || s.SceneVersion != prev.SceneVersion) RenderEditor(s);
+        if (_figure != null) _figure.ReducedMotion = s.ReducedMotion;
         if (s.SearchOpen != prev.SearchOpen && !s.SearchOpen) CloseSearch();
         if (s.Lens != prev.Lens || s.Mode != prev.Mode || s.View != prev.View || s.ReducedMotion != prev.ReducedMotion || s.Fidelity != prev.Fidelity || s.WorkspaceRoot != prev.WorkspaceRoot) Prefs.Save(s);
     }
@@ -242,6 +277,7 @@ public sealed partial class ShellPage : Page
     private void PlaceViewer()
     {
         if (_store == null) return;
+        if (_dock != null) { _dock.Place(); return; }
         var home = HomeRect(_store.State.Mode);
         Canvas.SetLeft(Viewer, home.X);
         Canvas.SetTop(Viewer, home.Y);

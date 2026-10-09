@@ -7,7 +7,22 @@ public partial class App : Application
 {
     public App()
     {
+        // APP_ORBIT_THEME=dark|light pins the theme (a harness captures both); otherwise the system theme
+        var theme = Environment.GetEnvironmentVariable("APP_ORBIT_THEME");
+        if (theme == "dark") RequestedTheme = ApplicationTheme.Dark;
+        else if (theme == "light") RequestedTheme = ApplicationTheme.Light;
         InitializeComponent();
+        // the design viewport, asked for before the window exists (a resize after creation races the X11 surface); APP_ORBIT_SIZE=WxH overrides
+        var size = Environment.GetEnvironmentVariable("APP_ORBIT_SIZE")?.Split('x');
+        var w = size?.Length == 2 && int.TryParse(size[0], out var pw) ? pw : 1440;
+        var h = size?.Length == 2 && int.TryParse(size[1], out var ph) ? ph : 900;
+        DesiredSize = new Windows.Graphics.SizeInt32 { Width = w, Height = h };
+        try
+        {
+            Windows.UI.ViewManagement.ApplicationView.PreferredLaunchViewSize = new Windows.Foundation.Size(w, h);
+            Windows.UI.ViewManagement.ApplicationView.PreferredLaunchWindowingMode = Windows.UI.ViewManagement.ApplicationViewWindowingMode.PreferredLaunchViewSize;
+        }
+        catch { }
     }
 
     protected Window? MainWindow { get; private set; }
@@ -43,12 +58,6 @@ public partial class App : Application
 
         MainWindow.SetWindowIcon();
 
-        // the design viewport; a harness can pin another size with APP_ORBIT_SIZE=WxH
-        var size = Environment.GetEnvironmentVariable("APP_ORBIT_SIZE")?.Split('x');
-        var w = size?.Length == 2 && int.TryParse(size[0], out var pw) ? pw : 1440;
-        var h = size?.Length == 2 && int.TryParse(size[1], out var ph) ? ph : 900;
-        DesiredSize = new Windows.Graphics.SizeInt32 { Width = w, Height = h };
-        try { MainWindow.AppWindow.Resize(DesiredSize); } catch { }
 
         // The Win32 GL render thread access-violates at degenerate sizes; the shell needs the width anyway.
         if (MainWindow.AppWindow.Presenter is OverlappedPresenter presenter)

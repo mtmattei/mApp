@@ -94,20 +94,21 @@ public sealed class Camera
 
     public void Snap() { Yaw = TargetYaw; Pitch = TargetPitch; Scale = TargetScale; }
 
-    /// <summary>One easing step (0.18 of the remaining distance, as the prototype). Returns true while still moving.</summary>
-    public bool Step()
+    /// <summary>One easing step: 0.18 of the remaining distance per 60 Hz frame (the prototype), scaled to the real frame time. Returns true while still moving.</summary>
+    public bool Step(double dtSeconds)
     {
+        var k = 1 - Math.Pow(1 - 0.18, Math.Clamp(dtSeconds, 0, 0.25) / (1 / 60.0));
         var moving = false;
-        Ease(ref Yaw, TargetYaw, 0.05, ref moving);
-        Ease(ref Pitch, TargetPitch, 0.05, ref moving);
-        Ease(ref Scale, TargetScale, 0.002, ref moving);
+        Ease(ref Yaw, TargetYaw, 0.05, k, ref moving);
+        Ease(ref Pitch, TargetPitch, 0.05, k, ref moving);
+        Ease(ref Scale, TargetScale, 0.002, k, ref moving);
         return moving;
     }
 
-    private static void Ease(ref double v, double t, double eps, ref bool moving)
+    private static void Ease(ref double v, double t, double eps, double k, ref bool moving)
     {
         var d = t - v;
-        if (Math.Abs(d) > eps) { v += d * 0.18; moving = true; } else v = t;
+        if (Math.Abs(d) > eps) { v += d * k; moving = true; } else v = t;
     }
 
     public void Fit(double width, double height, Layout.Bounds b, bool docked)

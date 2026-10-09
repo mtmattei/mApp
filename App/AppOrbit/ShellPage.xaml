@@ -88,7 +88,7 @@
 
       <!-- the viewer and the dock ghost float over the three columns; Dock places them -->
       <Canvas x:Name="Overlay" Grid.ColumnSpan="3">
-        <Border x:Name="DockGhost" BorderBrush="{ThemeResource Ink3}" BorderThickness="1" CornerRadius="8" Visibility="Collapsed" IsHitTestVisible="False" />
+        <Rectangle x:Name="DockGhost" Stroke="{ThemeResource Ink3}" StrokeThickness="1" RadiusX="8" RadiusY="8" Visibility="Collapsed" IsHitTestVisible="False" />
 
         <Grid x:Name="Viewer" Background="{ThemeResource Paper}" AutomationProperties.Name="Orbital viewer">
           <ContentControl x:Name="StageHost" IsTabStop="True" UseSystemFocusVisuals="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" AutomationProperties.Name="Orbital viewer">
