@@ -79,6 +79,7 @@ public sealed partial class OrbitFigure : SKCanvasElement
             var (left, right, nearest) = Iso.Extremes(_p, ring);
             return new Plate { Ring = ring, Inner = inner, Ext = new[] { left, right, nearest }, BoxRings = l.Boxes.Select(b => Iso.Rrect(b.X0, b.Y0, b.X1, b.Y1, b.R)).ToArray() };
         }).ToArray();
+        ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(Microsoft.UI.Input.InputSystemCursorShape.Cross);
         PointerMoved += OnMoved;
         PointerExited += (_, _) => { _lastP = null; _t = Rest; SetAct(-1); Loop(); };
         Tapped += (_, _) => { if (_act >= 0 && LensOf.TryGetValue(Lay[_act].Name, out var lens)) Picked?.Invoke(lens); };

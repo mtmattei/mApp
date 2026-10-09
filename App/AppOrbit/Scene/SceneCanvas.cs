@@ -2,6 +2,7 @@ using AppOrbit.Graph;
 using AppOrbit.Layout;
 using Card = AppOrbit.Layout.Card;
 using AppOrbit.State;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using SkiaSharp;
@@ -35,6 +36,12 @@ public sealed partial class SceneCanvas : SKCanvasElement
     private Drag? _drag;
     private string? _lastView;
     private readonly List<string> _tabOrder = new();
+    private static readonly InputSystemCursor ArrowCursor = InputSystemCursor.Create(InputSystemCursorShape.Arrow);
+    private static readonly InputSystemCursor HandCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
+    private static readonly InputSystemCursor MoveCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeAll);
+    private InputSystemCursor? _cursor;
+
+    private void SetCursor(InputSystemCursor c) { if (_cursor != c) { _cursor = c; ProtectedCursor = c; } }
 
     private sealed class Drag
     {
@@ -191,6 +198,15 @@ public sealed partial class SceneCanvas : SKCanvasElement
 
     private void SaveOffsets() => Prefs.SaveJson(OffsetsKey, _offsets);
 
+    /// <summary>Forgets every moved card in every layout (the journey runner's clean slate).</summary>
+    public void ClearAllOffsets()
+    {
+        _offsets.Clear();
+        SaveOffsets();
+        Project();
+        LayoutMoved?.Invoke(false);
+    }
+
     public void ResetOffsets()
     {
         if (_state == null || _layout == null) return;
@@ -270,12 +286,13 @@ public sealed partial class SceneCanvas : SKCanvasElement
         if (_drag == null)
         {
             var hit = HitAt(p);
+            SetCursor(hit != null ? HandCursor : ArrowCursor);
             HoverChanged?.Invoke(hit?.Hit.Id);
             return;
         }
         var dx = p.X - _drag.Start.X; var dy = p.Y - _drag.Start.Y;
         if (!_drag.Moved && Math.Sqrt(dx * dx + dy * dy) < 5) return;
-        if (!_drag.Moved) { _drag.Moved = true; CapturePointer(e.Pointer); }
+        if (!_drag.Moved) { _drag.Moved = true; CapturePointer(e.Pointer); SetCursor(_drag.Key != null ? MoveCursor : ArrowCursor); }
         if (_drag.Key != null && _state != null && _layout != null)
         {
             // move the card in scene units: undo the camera scale and the foreshortening of the orbit
@@ -297,6 +314,7 @@ public sealed partial class SceneCanvas : SKCanvasElement
         var drag = _drag;
         _drag = null;
         ReleasePointerCapture(e.Pointer);
+        SetCursor(HitAt(e.GetCurrentPoint(this).Position) != null ? HandCursor : ArrowCursor);
         if (drag == null) return;
         if (drag.Moved)
         {

@@ -88,6 +88,8 @@ public sealed class SceneRenderer : IDisposable
 
         canvas.Save();
         canvas.Concat(gm.H);
+        _stroke.Style = SKPaintStyle.Stroke;
+        _stroke.PathEffect = null;
 
         // shadow on focal cards: screens, details and view model planes (not chips)
         var focal = c.Kind == "screen" || c.Kind == "detail" || (c.Kind == "vm");

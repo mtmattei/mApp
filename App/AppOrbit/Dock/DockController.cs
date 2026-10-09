@@ -237,12 +237,21 @@ public sealed class DockController
         _phase = "flying";
         _h.SetFloating(true, false);
         _h.SetMode(home);
+        if (_h.ReducedMotion())
+        {
+            // one step: the columns take their shape now, the viewer lands on the home they give
+            _h.Shell.UpdateLayout();
+            var hm = _h.HomeOf(home);
+            SnapTo(hm);
+            Settle();
+            return;
+        }
         _h.Shell.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
         {
+            if (_phase != "flying") return;
             var hm = _h.HomeOf(home);
             Retarget(hm.X, hm.Y, hm.W, hm.H);
             ShowGhost(hm, "hard");
-            if (_h.ReducedMotion()) { SnapTo(hm); Settle(); return; }
             Loop();
         });
     }

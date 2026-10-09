@@ -74,6 +74,11 @@ internal static class Journey
         var store = page.StoreForJourney;
         Log($"window {page.XamlRoot?.Size.Width:0}x{page.XamlRoot?.Size.Height:0}");
         var g = store.Graph;
+        // a clean slate: the app persists preferences and card offsets, and a previous run may have left any of them
+        store.Dispatch(s => s with { FocusId = null, Trail = ImmutableList<string>.Empty, Lens = Lens.Structure, Mode = Modes.Expanded, View = Views.Orbit, Fidelity = Fidelities.Wire, ReducedMotion = false, WorkspaceRoot = "", Editor = new EditorState(null, null), SceneVersion = s.SceneVersion + 1 });
+        page.StageForJourney.ClearAllOffsets();
+        await Task.Delay(600);
+        Log($"state mode={S().Mode} carrying={S().Carrying} lens={S().Lens} view={S().View} viewer={page.ViewerSize.Width:0}x{page.ViewerSize.Height:0} inspector={page.InspectorWidth:0}");
         AppState S() => store.State;
         LayoutResult L() => LayoutEngine.Compute(g, S());
         int Cards(string kind, string? type = null) => L().Cards.Count(c => c.Kind == kind && (type == null || c.Type == type));
@@ -136,6 +141,13 @@ internal static class Journey
         Check(HasCard("route.checkout-to-orders#out"), "navigation lens: outgoing route to Orders");
         Check(L().Links.Count(l => l.Relation == "route") == 2, "two route connectors drawn");
         await Shot("03-checkout-navigation");
+        page.SetLens(Lens.States); await Settle();
+        Check(Cards("state") >= 3, $"states lens: state thumbnails beside the screen ({Cards("state")})");
+        await Shot("03b-checkout-states");
+        page.Focus("feature.purchase"); page.SetLens(Lens.Navigation); await Settle();
+        Check(L().Links.Count(l => l.Relation == "route") >= 3, "feature level, navigation lens: routes between and beyond the screens");
+        await Shot("03c-purchase-navigation");
+        page.Focus("screen.checkout"); page.SetLens(Lens.Navigation); await Settle();
         page.Focus("screen.orders"); await Settle();
         Check(S().FocusId == "screen.orders", "following the outgoing route lands on Orders");
         page.ZoomOut(); await Settle();
@@ -166,6 +178,9 @@ internal static class Journey
         Check(HasCard("state.place-order.disabled#in"), "the Disabled state depends on it");
         await Shot("06-can-place-order");
 
+        page.OpenSearchForJourney("Order"); await Settle(400);
+        Check(page.SearchOpenForJourney, "typing in the search box lists matching entities");
+        await Shot("07a-search");
         page.SearchAndPick("OrderLineRow"); await Settle();
         Check(S().FocusId == "component.order-line-row", "search + Enter focuses the OrderLineRow definition");
         var useScreens = L().Cards.Where(c => c.Kind == "screen").Select(c => g.Node(c.Id)!.Name).ToList();
@@ -243,9 +258,9 @@ internal static class Journey
             Check(dock.IsMoving, "D flies the viewer back along the same path");
             await Settle(1200);
             Check(S().Mode == Modes.Expanded && !dock.IsMoving, "and it lands expanded");
-            page.ToggleMotion(); page.ToggleMode(); await Task.Delay(120);
+            page.ToggleMotion(); page.ToggleMode(); await Task.Delay(80);
             Check(!dock.IsMoving && S().Mode == Modes.Docked, "reduced motion: docking resolves in one step");
-            page.ToggleMode(); await Task.Delay(120);
+            page.ToggleMode(); await Task.Delay(250);
             page.ToggleMotion(); await Settle();
             Check(S().Mode == Modes.Expanded, "and back");
         }

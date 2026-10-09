@@ -99,7 +99,9 @@ public static class Icons
             canvas.DrawPath(fill, paint);
         }
         canvas.Restore();
+        // the paint is shared with the caller's strokes: leave it as a stroke paint
         paint.PathEffect = null;
+        paint.Style = SKPaintStyle.Stroke;
         if (own) paint.Dispose();
     }
 }

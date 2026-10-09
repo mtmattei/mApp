@@ -28,6 +28,9 @@ public sealed partial class ShellPage
         };
     }
 
+    internal void OpenSearchForJourney(string query) { SearchBox.Text = query; _hits = G.Search(query); _selected = 0; RenderSearch(); }
+    internal bool SearchOpenForJourney => SearchPopup.IsOpen && _hits.Count > 0;
+
     /// <summary>Runs a search as the journey runner does: type, then Enter.</summary>
     internal void SearchAndPick(string query)
     {
@@ -59,7 +62,9 @@ public sealed partial class ShellPage
             type.Children.Add(Text(NodeType.Label(n.Type), "T11", "Ink3"));
             row.Children.Add(type);
             var name = Text(n.Name, "T12"); Grid.SetColumn(name, 1); row.Children.Add(name);
-            var ctx = Text(string.Join(" › ", G.ContextChain(n.Id).SkipLast(1).Select(c => c.Name)), "T11", "Ink3"); ctx.HorizontalAlignment = HorizontalAlignment.Right; Grid.SetColumn(ctx, 2); row.Children.Add(ctx);
+            var ctx = Text(string.Join(" › ", G.ContextChain(n.Id).SkipLast(1).Select(c => c.Name)), "T11", "Ink3");
+            ctx.HorizontalAlignment = HorizontalAlignment.Right; ctx.TextTrimming = TextTrimming.CharacterEllipsis; ctx.Margin = new Thickness(8, 0, 0, 0);
+            Grid.SetColumn(ctx, 2); row.Children.Add(ctx);
             var id = n.Id;
             row.PointerPressed += (_, e) => { PickSearch(id); e.Handled = true; };
             SearchResults.Children.Add(row);
