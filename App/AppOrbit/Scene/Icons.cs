@@ -64,12 +64,14 @@ public static class Icons
                 p.MoveTo(1.5f, 6); p.LineTo(9.7f, 6); p.MoveTo(7, 3.3f); p.LineTo(9.8f, 6); p.LineTo(7, 8.7f);
                 break;
             case "app":
+            {
                 p.AddCircle(6, 6, 2.2f);
-                var ellipse = new SKPath();
+                using var ellipse = new SKPath();
                 ellipse.AddOval(new SKRect(1, 4, 11, 8));
                 ellipse.Transform(SKMatrix.CreateRotationDegrees(-24, 6, 6));
                 p.AddPath(ellipse);
                 break;
+            }
             default:
                 p.AddCircle(6, 6, 3.3f);
                 break;

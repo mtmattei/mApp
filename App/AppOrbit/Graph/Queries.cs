@@ -203,6 +203,12 @@ public static class Queries
         g.ContextChain(id, trail).FirstOrDefault(n => n.Type == NodeType.Screen);
 
     // ---- search ----
+    private static readonly Dictionary<string, int> SearchRank = new()
+    {
+        [NodeType.Feature] = 0, [NodeType.Screen] = 1, [NodeType.Component] = 2, [NodeType.ViewModel] = 3, [NodeType.Instance] = 4,
+        [NodeType.Property] = 5, [NodeType.Command] = 6, [NodeType.State] = 7, [NodeType.Route] = 8,
+    };
+
     public static List<Node> Search(this GraphIndex g, string query, int limit = 12)
     {
         var q = query.Trim().ToLowerInvariant();
@@ -220,7 +226,8 @@ public static class Queries
         return g.Raw.Nodes
             .Select(n => (n, s: Score(n)))
             .Where(x => x.s != null)
-            .OrderBy(x => x.s).ThenBy(x => x.n.Name, StringComparer.Ordinal)
+            .OrderBy(x => x.s).ThenBy(x => x.n.Name, StringComparer.InvariantCulture)   // localeCompare, as the prototype
+            .ThenBy(x => SearchRank.TryGetValue(x.n.Type, out var r) ? r : 9)              // same name: the larger entity first
             .Take(limit)
             .Select(x => x.n)
             .ToList();

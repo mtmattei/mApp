@@ -145,7 +145,7 @@ public sealed class SceneRenderer : IDisposable
     private void DrawHead(SKCanvas canvas, CardShape s, string? glyphType, string name, string type, IEnumerable<Tag> tags, bool chip = false, bool italic = false, bool mono = false, bool rule = true)
     {
         var h = s.Head;
-        var font = Fonts.Get(chip ? 12.5f : 13, mono, chip ? 500 : 600, italic);
+        var font = Fonts.Get(chip ? 12.5f : 13, mono, chip || italic ? 500 : 600, italic);   // state heads are 500, as the prototype
         var x = 10f;
         var lineTop = chip ? 6f : 7f;
         var lineH = chip ? 18f : 17f;
@@ -156,7 +156,8 @@ public sealed class SceneRenderer : IDisposable
         }
         var typeFont = Fonts.Get(11);
         var typeW = type.Length > 0 ? typeFont.MeasureText(type) : 0;
-        var right = s.Head.Right - 10 - (typeW > 0 ? typeW + 6 : 0);
+        // state headers follow the prototype's flex row: the name keeps its width and the type label gives way
+        var right = italic ? s.Head.Right - 10 : s.Head.Right - 10 - (typeW > 0 ? typeW + 6 : 0);
         if (s.RouteButton != null) right = s.RouteButton.Value.Left - 6;
         var tagFont = Fonts.Get(11);
         var tagList = tags.Where(t => t.Text.Length > 0).ToList();
@@ -173,8 +174,9 @@ public sealed class SceneRenderer : IDisposable
             Fonts.Draw(canvas, t.Text, tr.Left + 5, tr.Top, 16, Fonts.Get(11, italic: t.Dashed), t.Color, paint: _text);
             x += tw + 6;
         }
-        if (type.Length > 0)
-            Fonts.Draw(canvas, type, s.Head.Right - 10, lineTop, lineH, typeFont, _p.Ink3, SKTextAlign.Right, maxWidth: italic ? s.Head.Width * 0.55f : float.PositiveInfinity, paint: _text);
+        var typeRoom = italic ? Math.Min(s.Head.Right - 10 - x, s.Head.Width * 0.55f) : float.PositiveInfinity;
+        if (type.Length > 0 && typeRoom >= 14)
+            Fonts.Draw(canvas, type, s.Head.Right - 10, lineTop, lineH, typeFont, _p.Ink3, SKTextAlign.Right, maxWidth: typeRoom, paint: _text);
         if (s.RouteButton is { } rb)
         {
             Icons.Draw(canvas, NodeType.Route, rb.MidX - 6, rb.MidY - 6, _p.HueRoute, 12, _stroke);

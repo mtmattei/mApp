@@ -339,6 +339,14 @@ search box and `?` opening search; breakpoints never applied at launch; the tool
 muted text was 3.3–3.6:1 (now `#5E6471`, 4.6–5.4:1, prototype CSS updated to match); a missing relationship
 target was counted but not listed. All fixed; journey 74/74 in both themes.
 
+Fourth pass, a second app and stress (`COMPLETENESS.md`, "Second pass"): a second sample app
+(Fieldwork) and generated graphs up to 200 screens. Found and fixed: nested hit regions tested in
+the wrong order, search order and same-name ties differing from the prototype, "uses" counting
+screens, state headers truncating the name, long identifiers breaking mid-word, the inspector and
+breadcrumb rebuilding on every lens change, a per-frame native path, and an Uno composition
+leak from shared brushes on content built in code. Journey 75/75; parity on both apps; stress
+passes on four graphs.
+
 ## What was learned building it
 
 - A page's `Resources` indexer does not see App.xaml or the theme entries; code-behind resolves

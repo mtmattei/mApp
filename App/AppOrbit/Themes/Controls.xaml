@@ -48,6 +48,7 @@
     <Setter Property="FontSize" Value="12.5" />
     <Setter Property="Foreground" Value="{ThemeResource Ink2}" />
     <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="5" />
     <Setter Property="Padding" Value="10,0" />
@@ -62,6 +63,7 @@
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{ThemeResource Focus}" />
     <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="MinHeight" Value="0" />
@@ -74,6 +76,7 @@
     <Setter Property="FontSize" Value="12.5" />
     <Setter Property="Foreground" Value="{ThemeResource Ink2}" />
     <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="6,0" />
@@ -89,6 +92,7 @@
     <Setter Property="FontSize" Value="12.5" />
     <Setter Property="Foreground" Value="{ThemeResource Ink}" />
     <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="4" />

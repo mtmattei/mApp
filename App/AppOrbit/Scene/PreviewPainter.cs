@@ -120,9 +120,7 @@ public sealed class PreviewPainter : IDisposable
                     var tw = font.MeasureText(region.Name) + 8;
                     var chip = new SKRect(region.Rect.Left - 1, region.Rect.Top - 16, region.Rect.Left - 1 + tw, region.Rect.Top - 1);
                     _fill.Color = _p.HueComp;
-                    var path = new SKPath();
-                    path.AddRoundRect(chip, 3, 3);
-                    canvas.DrawPath(path, _fill);
+                    canvas.DrawRoundRect(chip, 3, 3, _fill);
                     Fonts.Draw(canvas, region.Name, chip.Left + 4, chip.Top, 15, font, _p.Paper, paint: _text);
                 }
             }

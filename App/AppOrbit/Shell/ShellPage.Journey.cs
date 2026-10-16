@@ -58,7 +58,7 @@ public sealed partial class ShellPage
     {
         switch (el)
         {
-            case TextBlock tb: return tb.Text;
+            case TextBlock tb: return (tb.Inlines.Count > 0 ? string.Concat(tb.Inlines.OfType<Microsoft.UI.Xaml.Documents.Run>().Select(r => r.Text)) : tb.Text).Replace("\u200B", "");
             case Button b: return b.Content is UIElement c ? TextOf(c) : b.Content?.ToString() ?? "";
             case Border bd: return bd.Child != null ? TextOf(bd.Child) : "";
             case ContentControl cc: return cc.Content is UIElement c2 ? TextOf(c2) : cc.Content?.ToString() ?? "";

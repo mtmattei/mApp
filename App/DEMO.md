@@ -33,7 +33,7 @@ dotnet run --project AppOrbit\AppOrbit.csproj -c Release -f net10.0-desktop
 |---|---|---|---|
 | 1 | "This is App Orbit. It reads an app and lays its structure out in space." | Nothing. Let it sit. | The three feature plates and OrderLineRow underneath |
 | 2 | "It's a real 3D camera, so you can turn the app around." | Drag the empty canvas left and right. | The yaw and pitch readout, bottom left |
-| 3 | "Zooming changes the level of detail, it doesn't just magnify." | Wheel over **Purchase**, then over **Checkout**. | The Checkout screen card |
+| 3 | "Zooming changes the level of detail, it doesn't just magnify." | Click **Purchase**, then click **Checkout**. (The mouse wheel does the same; clicking is the tested path.) | The Checkout screen card |
 | 4 | "The Behavior lens wires every control to the view model member it binds to." | Press `3`. | The binding lines into CartViewModel, and its **shared** badge |
 | 5 | "The right column is the text version of the scene, and every claim points at the line it came from." | Scroll the inspector to **Evidence**. | **declared, 100%** and the source pane on the left |
 | 6 | "States show what the screen can be in." | Press `4`. | Idle, Submitting, Error |
@@ -54,7 +54,7 @@ dotnet run --project AppOrbit\AppOrbit.csproj -c Release -f net10.0-desktop
 
 | Problem | Do | Say |
 |---|---|---|
-| The wheel overshoots a level | Press `Backspace`, or click the card and press Enter | "Let me step back one level." |
+| A click or wheel lands one level too deep | Press `Backspace` | "Let me step back one level." |
 | The camera ends up at a strange angle | Press `0` | "Back to the default view." |
 | The dock drag misses | Press `D` | "There's a key for that." |
 | A card gets dragged by accident | Click **reset layout** | "Cards can be moved; this puts them back." |
@@ -63,5 +63,6 @@ dotnet run --project AppOrbit\AppOrbit.csproj -c Release -f net10.0-desktop
 ## Likely questions
 
 - **"Does it read my app?"** "Today it reads a hand-authored graph of a sample app. Generating that graph from source is the next step."
+- **"Does it only work on this sample?"** "No. A second app with a different shape, a field-service app, runs through the same checks, and the layout matches the prototype on every case. It also holds up on a generated app with two hundred screens."
 - **"Is that a live value?"** "Not yet. It's read-only, and the inspector says so: no running app connected."
 - **"How do you know the layout is right?"** "The web prototype's layout code runs over every case, and the Uno app is checked against it: 888 cases, zero differences."

@@ -59,7 +59,7 @@ public sealed partial class ShellPage
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             var type = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 };
-            type.Children.Add(Glyph(n.Type, Res<Brush>(HueKey(n.Type))));
+            type.Children.Add(Glyph(n.Type, Own(HueKey(n.Type))));
             type.Children.Add(Text(NodeType.Label(n.Type), "T11", "Ink3"));
             row.Children.Add(type);
             var name = Text(n.Name, "T12"); Grid.SetColumn(name, 1); row.Children.Add(name);

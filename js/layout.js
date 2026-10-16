@@ -129,7 +129,7 @@ function layoutApplication(g, lens, flat, docked) {
       const uses = G.screensUsingDefinition(g, def.id);
       const key = def.id;
       cards.push(card('chip', key, 'component', spread(i, G.nodesOf(g, 'component').length, 220), 200, flat ? 0 : 60, CHIP_W + 20, CHIP_H, {
-        id: def.id, title: def.name, sub: `${uses.length} uses · ${uses.map((u) => u.screen.name).join(', ')}`,
+        id: def.id, title: def.name, sub: useSummary(g, def.id),
       }));
       for (const u of uses) links.push(link(`${plateOf.get(u.screen.id)}/${u.screen.id}:b`, `${key}:t`, 'instance-of', '', { arrow: false }));
     });
@@ -220,7 +220,7 @@ function layoutFeature(g, featureId, lens, flat, docked) {
       const all = G.screensUsingDefinition(g, defId);
       const key = defId;
       cards.push(card('chip', key, 'component', spread(i, defs.size, 230), sz.h / 2 + 70, flat ? 0 : 60, CHIP_W + 30, CHIP_H, {
-        id: defId, title: def.name, sub: `${all.length} uses · ${all.map((u) => u.screen.name).join(', ')}`,
+        id: defId, title: def.name, sub: useSummary(g, defId),
       }));
       for (const u of uses) links.push(link(`${u.screen.id}/${u.inst.id}:c`, `${key}:t`, 'instance-of', '', { arrow: false }));
     });
@@ -348,7 +348,7 @@ function layoutScreen(g, screenId, lens, flat, docked) {
       const uses = G.screensUsingDefinition(g, defId);
       const key = defId;
       cards.push(card('chip', key, 'component', spread(i, defs.size, 230), sz.h / 2 + 60, flat ? 0 : 80, CHIP_W + 40, CHIP_H, {
-        id: defId, title: def.name, sub: `${uses.length} uses · ${uses.map((u) => u.screen.name).join(', ')}`,
+        id: defId, title: def.name, sub: useSummary(g, defId),
       }));
       for (const inst of instances) links.push(link(`${front}/${inst.id}:c`, `${key}:t`, 'instance-of', 'instance of', { arrow: false }));
     });
@@ -427,7 +427,7 @@ function layoutComponent(g, id, lens, flat, docked, trail) {
     }
     const siblings = G.instancesOf(g, def.id).filter((i) => i.id !== id);
     cards.push(card('chip', def.id, 'component', rx, -120, flat ? 0 : 60, CHIP_W + 40, CHIP_H, {
-      id: def.id, title: def.name, sub: `definition · ${siblings.length + 1} uses`,
+      id: def.id, title: def.name, sub: `definition · ${usesLabel(siblings.length + 1)}`,
     }));
     links.push(link(`${region}:r`, `${def.id}:l`, 'instance-of', 'instance of', { arrow: true }));
     siblings.forEach((s, i) => {
@@ -459,6 +459,15 @@ function layoutComponent(g, id, lens, flat, docked, trail) {
   return { cards, links, note: '' };
 }
 
+/** "no uses", "1 use", "3 uses": uses are instances; a component can be used twice on one screen. */
+function usesLabel(n) { return n === 0 ? 'no uses' : n === 1 ? '1 use' : `${n} uses`; }
+
+/** A definition's chip line: how many instances, then the screens they are on. */
+function useSummary(g, defId) {
+  const n = G.instancesOf(g, defId).length;
+  return n === 0 ? 'no uses' : `${usesLabel(n)} · ${G.screensUsingDefinition(g, defId).map((u) => u.screen.name).join(', ')}`;
+}
+
 function layoutDefinition(g, def, flat, docked) {
   const cards = [], links = [];
   const uses = G.screensUsingDefinition(g, def.id);
@@ -472,7 +481,8 @@ function layoutDefinition(g, def, flat, docked) {
     }));
     links.push(link(`${def.id}:b`, `${key}/${u.instance.id}:c`, 'instance-of', '', { arrow: true }));
   });
-  return { cards, links, note: `${uses.length} uses across ${uses.length} screen${uses.length === 1 ? '' : 's'}` };
+  const count = G.instancesOf(g, def.id).length;
+  return { cards, links, note: count === 0 ? 'Declared, but no screen contains it' : `${usesLabel(count)} across ${uses.length} screen${uses.length === 1 ? '' : 's'}` };
 }
 
 // ------------------------------------------------------------------ detail (member, state, route, view model)

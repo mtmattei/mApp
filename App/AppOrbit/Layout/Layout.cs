@@ -234,7 +234,7 @@ public static class LayoutEngine
                 {
                     Kind = "chip", Key = def.Id, Type = NodeType.Component, Id = def.Id,
                     X = Spread(i, defs.Count, 220), Y = 200, Z = flat ? 0 : 60, W = ChipW + 20, H = ChipH,
-                    Title = def.Name, Sub = $"{uses.Count} uses · {string.Join(", ", uses.Select(u => u.Screen.Name))}",
+                    Title = def.Name, Sub = UseSummary(g, def.Id),
                 });
                 foreach (var u in uses) links.Add(L($"{plateOf[u.Screen.Id]}/{u.Screen.Id}:b", $"{def.Id}:t", Relation.InstanceOf));
             }
@@ -357,7 +357,7 @@ public static class LayoutEngine
                 {
                     Kind = "chip", Key = defId, Type = NodeType.Component, Id = defId,
                     X = Spread(i, defOrder.Count, 230), Y = sz.H / 2 + 70, Z = flat ? 0 : 60, W = ChipW + 30, H = ChipH,
-                    Title = def.Name, Sub = $"{all.Count} uses · {string.Join(", ", all.Select(u => u.Screen.Name))}",
+                    Title = def.Name, Sub = UseSummary(g, defId),
                 });
                 foreach (var u in uses) links.Add(L($"{u.Screen.Id}/{u.Inst.Id}:c", $"{defId}:t", Relation.InstanceOf));
             }
@@ -532,7 +532,7 @@ public static class LayoutEngine
                 {
                     Kind = "chip", Key = defId, Type = NodeType.Component, Id = defId,
                     X = Spread(i, defOrder.Count, 230), Y = sz.H / 2 + 60, Z = flat ? 0 : 80, W = ChipW + 40, H = ChipH,
-                    Title = def.Name, Sub = $"{uses.Count} uses · {string.Join(", ", uses.Select(u => u.Screen.Name))}",
+                    Title = def.Name, Sub = UseSummary(g, defId),
                 });
                 foreach (var inst in defs[defId]) links.Add(L($"{front}/{inst.Id}:c", $"{defId}:t", Relation.InstanceOf, "instance of"));
             }
@@ -653,7 +653,7 @@ public static class LayoutEngine
             cards.Add(new Card
             {
                 Kind = "chip", Key = def.Id, Type = NodeType.Component, Id = def.Id,
-                X = rx, Y = -120, Z = flat ? 0 : 60, W = ChipW + 40, H = ChipH, Title = def.Name, Sub = $"definition · {siblings.Count + 1} uses",
+                X = rx, Y = -120, Z = flat ? 0 : 60, W = ChipW + 40, H = ChipH, Title = def.Name, Sub = $"definition · {UsesLabel(siblings.Count + 1)}",
             });
             links.Add(L($"{region}:r", $"{def.Id}:l", Relation.InstanceOf, "instance of", arrow: true));
             for (var i = 0; i < siblings.Count; i++)
@@ -695,6 +695,16 @@ public static class LayoutEngine
         return r;
     }
 
+    /// <summary>"no uses", "1 use", "3 uses": uses are instances; a component can be used twice on one screen.</summary>
+    private static string UsesLabel(int n) => n == 0 ? "no uses" : n == 1 ? "1 use" : $"{n} uses";
+
+    /// <summary>A definition's chip line: how many instances, then the screens they are on.</summary>
+    private static string UseSummary(GraphIndex g, string defId)
+    {
+        var n = g.InstancesOf(defId).Count;
+        return n == 0 ? "no uses" : $"{UsesLabel(n)} · {string.Join(", ", g.ScreensUsingDefinition(defId).Select(u => u.Screen.Name))}";
+    }
+
     private static LayoutResult LayoutDefinition(GraphIndex g, Node def, bool flat, bool docked)
     {
         var r = new LayoutResult();
@@ -715,7 +725,8 @@ public static class LayoutEngine
             });
             links.Add(L($"{def.Id}:b", $"{key}/{u.Instance.Id}:c", Relation.InstanceOf, "", arrow: true));
         }
-        r.Note = $"{uses.Count} uses across {uses.Count} screen{(uses.Count == 1 ? "" : "s")}";
+        var count = g.InstancesOf(def.Id).Count;
+        r.Note = count == 0 ? "Declared, but no screen contains it" : $"{UsesLabel(count)} across {uses.Count} screen{(uses.Count == 1 ? "" : "s")}";
         return r;
     }
 

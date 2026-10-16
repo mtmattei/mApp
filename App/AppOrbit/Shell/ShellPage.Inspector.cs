@@ -23,13 +23,27 @@ public sealed partial class ShellPage
         ["route"] = "route", ["request"] = "request", ["mechanism"] = "mechanism", ["qualifier"] = "qualifier", ["data"] = "data", ["trigger"] = "when", ["duration"] = "duration", ["origin"] = "origin", ["parts"] = "parts",
     };
 
-    private Brush B(string key) => Res<Brush>(key);
+    private Brush B(string key) => Own(key);
     private Style S(string key) => Res<Style>(key);
+
+    /// <summary>Zero-width break opportunities at namespace dots and camelCase humps, so a long identifier wraps at a word.</summary>
+    internal static string Breakable(string s)
+    {
+        var sb = new System.Text.StringBuilder(s.Length + 8);
+        for (var i = 0; i < s.Length; i++)
+        {
+            var c = s[i];
+            if (i > 0 && char.IsUpper(c) && (char.IsLower(s[i - 1]) || char.IsDigit(s[i - 1]))) sb.Append('\u200B');
+            sb.Append(c);
+            if (c == '.' && i < s.Length - 1) sb.Append('\u200B');
+        }
+        return sb.ToString();
+    }
 
     private TextBlock Text(string text, string style, string? brush = null, bool wrap = false, bool mono = false)
     {
         var tb = new TextBlock { Text = text, Style = S(style), TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap };
-        if (brush != null) tb.Foreground = B(brush);
+        tb.Foreground = B(brush ?? (style == "T11" ? "Ink2" : "Ink"));   // the style's default colour, as an own brush (see Own)
         if (mono) tb.FontFamily = Res<FontFamily>("Font.Mono");
         return tb;
     }
@@ -45,7 +59,7 @@ public sealed partial class ShellPage
 
     private Button SrcLink(string text, Action onClick, string? tooltip = null)
     {
-        var b = new Button { Content = new TextBlock { Text = text, FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 11, Foreground = B("Focus"), TextDecorations = Windows.UI.Text.TextDecorations.Underline }, Style = S("LinkButton") };
+        var b = Fresh(new Button { Content = new TextBlock { Text = text, FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 11, Foreground = B("Focus"), TextDecorations = Windows.UI.Text.TextDecorations.Underline }, Style = S("LinkButton") }, "Focus");
         b.Click += (_, _) => onClick();
         if (tooltip != null) ToolTipService.SetToolTip(b, tooltip);
         AutomationProperties.SetName(b, text);
@@ -54,7 +68,7 @@ public sealed partial class ShellPage
 
     private Border TagChip(string text, string brush, bool dashed = false)
     {
-        var border = new Border { BorderBrush = B(brush), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(3), Padding = new Thickness(5, 0, 5, 0), Height = 16, VerticalAlignment = VerticalAlignment.Center };
+        var border = new Border { BorderBrush = B(brush), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(3), Padding = new Thickness(5, 0, 5, 0), Height = 16, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left };
         var tb = Text(text, "T11", brush);
         if (dashed) tb.FontStyle = Windows.UI.Text.FontStyle.Italic;
         tb.VerticalAlignment = VerticalAlignment.Center;
@@ -62,8 +76,15 @@ public sealed partial class ShellPage
         return border;
     }
 
+    private string? _inspectorKey;
+
     private void RenderInspector(AppState s)
     {
+        // the inspector reads the focus, the trail (for context), the workspace root, the runtime and the theme; a lens,
+        // view, fidelity or mode change leaves it as it is, and rebuilding it (the figure included) costs a layout pass
+        var inputs = $"{s.FocusId}|{string.Join(",", s.Trail)}|{s.WorkspaceRoot}|{s.RuntimeConnected}|{ActualTheme}";
+        if (inputs == _inspectorKey) return;
+        _inspectorKey = inputs;
         var root = Inspector;
         root.Children.Clear();
         if (s.FocusId == null) { RenderApplicationInspector(s); return; }
@@ -72,10 +93,10 @@ public sealed partial class ShellPage
 
         // identity
         var eyebrow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        eyebrow.Children.Add(Glyph(n.Type, Res<Brush>(HueKey(n.Type))));
+        eyebrow.Children.Add(Glyph(n.Type, Own(HueKey(n.Type))));
         eyebrow.Children.Add(Text(NodeType.Label(n.Type), "T11", "Ink3"));
         root.Children.Add(eyebrow);
-        root.Children.Add(Text(n.Name, "T20", wrap: true));
+        root.Children.Add(Text(Breakable(n.Name), "T20", wrap: true));
         if (n.Summary != null) { var p = Text(n.Summary, "T12", "Ink2", wrap: true); p.Margin = new Thickness(0, 8, 0, 0); p.MaxWidth = 380; p.HorizontalAlignment = HorizontalAlignment.Left; root.Children.Add(p); }
         root.Children.Add(SourceRow(n.Source, s.WorkspaceRoot));
 
@@ -158,23 +179,29 @@ public sealed partial class ShellPage
         var row = kv.RowDefinitions.Count;
         kv.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         var kt = Text(k, "T12", "Ink3"); Grid.SetRow(kt, row); kv.Children.Add(kt);
-        // a zero-width space after each dot: dotted names wrap at a namespace boundary, never mid-word
-        var vt = Text(v.Replace(".", ".\u200B"), "Mono11", valueBrush, wrap: true); Grid.SetRow(vt, row); Grid.SetColumn(vt, 1); kv.Children.Add(vt);
+        var vt = Text(Breakable(v), "Mono11", valueBrush, wrap: true); Grid.SetRow(vt, row); Grid.SetColumn(vt, 1); kv.Children.Add(vt);
     }
 
     private Button RelRow(Node other, Edge? e, string ctx)
     {
-        var b = new Button { Style = S("RowButton") };
+        var b = Fresh(new Button { Style = S("RowButton") }, "Ink");
         var grid = new Grid { ColumnSpacing = 4 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var glyph = Glyph(other.Type, Res<Brush>(HueKey(other.Type)));
+        var glyph = Glyph(other.Type, Own(HueKey(other.Type)));
         glyph.VerticalAlignment = VerticalAlignment.Top; glyph.Margin = new Thickness(0, 2, 0, 0);
         grid.Children.Add(glyph);
-        var main = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        main.Children.Add(Text(other.Name, "T12"));
-        if (e?.Label is { Length: > 0 } lbl) main.Children.Add(Text(lbl, "Mono11", "Ink3"));
+        // name and qualifier wrap together inside the middle column (the prototype's .rel grid), never clip
+        var main = new StackPanel { Spacing = 2 };
+        var line = new TextBlock { Style = S("T12"), TextWrapping = TextWrapping.Wrap, Foreground = B("Ink") };
+        line.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = Breakable(other.Name) });
+        if (e?.Label is { Length: > 0 } lbl)
+        {
+            line.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = "  " });
+            line.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = Breakable(lbl), FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 11, Foreground = B("Ink3") });
+        }
+        main.Children.Add(line);
         if (e?.IsInferred == true) main.Children.Add(TagChip($"inferred {Math.Round(e.Evidence.Confidence * 100)}%", "Ink3", dashed: true));
         Grid.SetColumn(main, 1); grid.Children.Add(main);
         var ctxT = Text(ctx, "T11", "Ink3"); ctxT.Margin = new Thickness(0, 2, 0, 0); Grid.SetColumn(ctxT, 2); grid.Children.Add(ctxT);
@@ -238,7 +265,7 @@ public sealed partial class ShellPage
         var body = new StackPanel { Spacing = 2 };
         Grid.SetColumn(body, 1); box.Children.Add(body);
         if (ev == null) { body.Children.Add(Text("No evidence recorded.", "T12", "Ink3")); return box; }
-        if (edgeText != null) body.Children.Add(Text(edgeText, "Mono11", "Ink2"));
+        if (edgeText != null) body.Children.Add(Text(Breakable(edgeText), "Mono11", "Ink2", wrap: true));
         var head = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         head.Children.Add(TagChip(ev.Kind, ev.Kind == "observed" ? "Ok" : "Ink3", ev.Kind == "inferred"));
         head.Children.Add(Text($"{Math.Round(ev.Confidence * 100)}% confidence", "T12", "Ink2"));
@@ -299,7 +326,9 @@ public sealed partial class ShellPage
         var statsBlock = Text(string.Join("  ·  ", statsText), "T12", "Ink2", wrap: true);
         root.Children.Add(statsBlock);
         var inferred = r.Edges.Count(e => e.IsInferred);
-        var q = Text($"{inferred} relationship{(inferred == 1 ? " is" : "s are")} inferred and marked as such. Everything else is declared in source.", "T12", "Ink3", wrap: true);
+        var observed = r.Nodes.Count(n => n.Evidence.Kind == "observed") + r.Edges.Count(e => e.Evidence.Kind == "observed");
+        var seen = observed > 0 ? $" {observed} fact{(observed == 1 ? " was" : "s were")} observed in a running app." : "";
+        var q = Text($"{inferred} relationship{(inferred == 1 ? " is" : "s are")} inferred and marked as such.{seen} The rest is declared in source or derived from it.", "T12", "Ink3", wrap: true);
         q.Margin = new Thickness(0, 8, 0, 0); q.MaxWidth = 380; q.HorizontalAlignment = HorizontalAlignment.Left;
         root.Children.Add(q);
         root.Children.Add(Section("Features", G.NodesOf(NodeType.Feature).Count));

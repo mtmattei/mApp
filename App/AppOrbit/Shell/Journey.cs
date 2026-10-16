@@ -163,6 +163,10 @@ internal static class Journey
         await Shot("04-checkout-behavior");
 
         Check(page.HitAtCenterOf("screen.checkout", "screen.checkout/inst.checkout.place-order:c") == "inst.checkout.place-order", "a press on Place order in the preview hits the instance");
+        {
+            var nested = page.HitAtCenterOf("screen.checkout", "screen.checkout/inst.checkout.line-row:c");
+            Check(nested == "inst.checkout.line-row", $"a press on a row inside the lines list hits the row, the topmost region ({nested})");
+        }
         Check(page.HitAtCenterOf("vm.cart", "vm.cart/prop.cart.can-place-order:c") == "prop.cart.can-place-order", "a press on a member row hits the member");
         page.Focus("inst.checkout.place-order"); await Settle();
         Check(S().FocusId == "inst.checkout.place-order", "click Place order in the preview → component level");

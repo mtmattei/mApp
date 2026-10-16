@@ -58,6 +58,8 @@
 <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource Color.Paper3}" />
 <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource Color.Ink}" />
 <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource Color.Ink}" />
+<!-- solid, not Fluent's shared elevation gradient: every button registers with that one composition brush and Uno never drops the registration, so a shell that rebuilds rows leaks -->
+<SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource Color.Rule}" />
 <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource Color.Ink3}" />
 <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource Color.Ink3}" />
 <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource Color.Paper}" />
@@ -116,6 +118,8 @@
 <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{StaticResource Color.Paper3}" />
 <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{StaticResource Color.Ink}" />
 <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{StaticResource Color.Ink}" />
+<!-- solid, not Fluent's shared elevation gradient: every button registers with that one composition brush and Uno never drops the registration, so a shell that rebuilds rows leaks -->
+<SolidColorBrush x:Key="ButtonBorderBrush" Color="{StaticResource Color.Rule}" />
 <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{StaticResource Color.Ink3}" />
 <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{StaticResource Color.Ink3}" />
 <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource Color.Paper}" />

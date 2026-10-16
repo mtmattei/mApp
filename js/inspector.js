@@ -177,7 +177,9 @@ function renderApplication(root, g, state, actions) {
   stats.appendChild(e);
   root.appendChild(stats);
   const inferred = r.edges.filter(G.isInferred).length;
-  root.appendChild(h('p', 'quiet', `${inferred} relationship${inferred === 1 ? ' is' : 's are'} inferred and marked as such. Everything else is declared in source.`));
+  const observed = [...r.nodes, ...r.edges].filter((x) => x.evidence?.kind === 'observed').length;
+  const seen = observed ? ` ${observed} fact${observed === 1 ? ' was' : 's were'} observed in a running app.` : '';
+  root.appendChild(h('p', 'quiet', `${inferred} relationship${inferred === 1 ? ' is' : 's are'} inferred and marked as such.${seen} The rest is declared in source or derived from it.`));
   root.appendChild(section('Features', G.nodesOf(g, 'feature').length));
   for (const f of G.nodesOf(g, 'feature')) {
     const b = h('button', 'rel');

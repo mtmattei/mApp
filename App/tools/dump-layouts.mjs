@@ -9,8 +9,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const proto = join(here, '..', '..');
 const { indexGraph } = await import(pathToFileURL(join(proto, 'js', 'graph.js')));
 const { layout } = await import(pathToFileURL(join(proto, 'js', 'layout.js')));
+const { search } = await import(pathToFileURL(join(proto, 'js', 'graph.js')));
 
-const graph = indexGraph(JSON.parse(readFileSync(join(proto, 'graph', 'orderly.graph.json'), 'utf8')));
+// node tools/dump-layouts.mjs [graph.json] [out.json]: defaults to the bundled graph and fixtures/layouts.json
+const graphPath = process.argv[2] ?? join(proto, 'graph', 'orderly.graph.json');
+const outPath = process.argv[3] ?? join(here, 'fixtures', 'layouts.json');
+const graph = indexGraph(JSON.parse(readFileSync(graphPath, 'utf8')));
 const LENSES = ['structure', 'navigation', 'behavior', 'states'];
 const r3 = (v) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v);
 const sorted = (set) => [...(set || [])].sort();
@@ -50,6 +54,15 @@ for (const focusId of focuses) {
     }
   }
 }
-mkdirSync(join(here, 'fixtures'), { recursive: true });
-writeFileSync(join(here, 'fixtures', 'layouts.json'), JSON.stringify({ graph: graph.raw.graphId, nodes: graph.raw.nodes.length, edges: graph.raw.edges.length, cases }));
+mkdirSync(dirname(outPath), { recursive: true });
+// search parity: every name, every two-letter prefix, some ids and summary words
+const queries = new Set();
+for (const n of graph.raw.nodes) {
+  queries.add(n.name);
+  queries.add(n.name.slice(0, 2));
+  queries.add(n.id.split('.').pop());
+  for (const word of (n.summary || '').split(/\s+/).filter((w) => w.length > 4).slice(0, 2)) queries.add(word);
+}
+const searches = [...queries].sort().map((q) => ({ q, ids: search(graph, q).map((n) => n.id) }));
+writeFileSync(outPath, JSON.stringify({ graph: graph.raw.graphId, nodes: graph.raw.nodes.length, edges: graph.raw.edges.length, cases, searches }));
 console.log(`${cases.length} cases, ${cases.reduce((a, c) => a + c.cards.length, 0)} cards, ${cases.reduce((a, c) => a + c.links.length, 0)} links`);

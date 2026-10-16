@@ -14,6 +14,7 @@ public sealed partial class ShellPage
     private readonly Dictionary<string, Button> _fileButtons = new();
     private readonly List<(int Line, Border Row, TextBlock Number)> _codeLines = new();
     private string? _renderedFile = "\0";
+    private static readonly SolidColorBrush Clear = new(Microsoft.UI.Colors.Transparent);
 
     private void BuildEditorFiles()
     {
@@ -61,7 +62,7 @@ public sealed partial class ShellPage
     private void RenderEditor(AppState s)
     {
         var (fileId, line) = s.Editor;
-        foreach (var (id, b) in _fileButtons) b.Background = id == fileId ? B("Paper") : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        foreach (var (id, b) in _fileButtons) b.Background = id == fileId ? B("Paper") : Clear;
         if (fileId == null)
         {
             if (_renderedFile != null)

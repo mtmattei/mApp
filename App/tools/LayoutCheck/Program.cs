@@ -10,6 +10,23 @@ var root = AppContext.BaseDirectory;
 while (root != null && !File.Exists(Path.Combine(root, "AppOrbit.sln"))) root = Path.GetDirectoryName(root);
 root ??= Directory.GetCurrentDirectory();
 var graphPath = args.Length > 0 ? args[0] : Path.Combine(root, "..", "graph", "orderly.graph.json");
+
+// --bench <graph>: warm timings of the application-level layout in every lens (no fixture needed)
+if (args.Length > 1 && args[0] == "--bench")
+{
+    var bg = new GraphIndex(AppGraph.Parse(File.ReadAllText(args[1])));
+    Console.WriteLine($"graph {bg.Raw.GraphId}: {bg.Raw.Nodes.Count} nodes");
+    foreach (var lens in new[] { "structure", "navigation", "behavior", "states" })
+    {
+        var st = AppOrbit.State.AppState.Initial(lens, "expanded", "orbit", false, "wire", null);
+        var first = System.Diagnostics.Stopwatch.StartNew(); var cardCount = AppOrbit.Layout.LayoutEngine.Compute(bg, st).Cards.Count; var cold = first.Elapsed.TotalMilliseconds;
+        var runs = new List<double>();
+        for (var i = 0; i < 20; i++) { var sw = System.Diagnostics.Stopwatch.StartNew(); AppOrbit.Layout.LayoutEngine.Compute(bg, st); runs.Add(sw.Elapsed.TotalMilliseconds); }
+        runs.Sort();
+        Console.WriteLine($"  application, {lens}: {cardCount} cards, first {cold:0.0} ms, warm median {runs[10]:0.00} ms, max {runs[^1]:0.00} ms");
+    }
+    return 0;
+}
 var fixturePath = args.Length > 1 ? args[1] : Path.Combine(root, "tools", "fixtures", "layouts.json");
 
 var g = new GraphIndex(AppGraph.Parse(File.ReadAllText(graphPath)));
@@ -90,8 +107,21 @@ foreach (var c in fx.GetProperty("cases").EnumerateArray())
     }
 }
 
+var searches = 0;
+if (fx.TryGetProperty("searches", out var sx))
+{
+    foreach (var q in sx.EnumerateArray())
+    {
+        searches++;
+        var query = q.GetProperty("q").GetString()!;
+        var want = string.Join(",", q.GetProperty("ids").EnumerateArray().Select(x => x.GetString()));
+        var got = string.Join(",", g.Search(query).Select(x => x.Id));
+        if (want != got) diffs.Add($"search \"{query}\": expected [{want}], got [{got}]");
+    }
+}
+
 foreach (var d in diffs.Take(60)) Console.WriteLine("DIFF " + d);
 Console.WriteLine(diffs.Count == 0
-    ? $"OK layout parity: {cases} cases, {cards} cards, {links} links match the prototype"
+    ? $"OK layout parity: {cases} cases, {cards} cards, {links} links match the prototype" + (searches > 0 ? $"; {searches} searches return the same entities in the same order" : "")
     : $"{diffs.Count} difference(s) across {cases} cases");
 return diffs.Count == 0 ? 0 : 1;

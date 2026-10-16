@@ -50,7 +50,9 @@ public sealed partial class ShellPage : Page
         catch (Exception ex)
         {
             BootError.Visibility = Visibility.Visible;
-            BootErrorText.Text = $"Expected Graph/orderly.graph.json next to the app (packaged from ../../graph). {ex.Message}";
+            BootErrorText.Text = App.LaunchGraph is { } path
+                ? $"Could not read the graph at {path}. {ex.Message}"
+                : $"Expected Graph/orderly.graph.json next to the app (packaged from ../../graph). {ex.Message}";
             return;
         }
         var prefs = Prefs.Load();
@@ -77,7 +79,9 @@ public sealed partial class ShellPage : Page
         ApplyBreakpoints();   // the window may already be at its final size: no resize will come to apply them
         Stage.ResetCamera(_store.State.View);
         FocusViewer();
+        _booted = true;
         Journey.Start(this);
+        Stress.Start(this);
     }
 
     /// <summary>The shell's minimum is 1180 × 640 effective pixels (the top bar needs it); the presenter takes physical pixels, so it follows the display scale.</summary>
@@ -104,6 +108,7 @@ public sealed partial class ShellPage : Page
 
     private static async Task<string> ReadGraphAsync()
     {
+        if (App.LaunchGraph is { } graphPath) return await File.ReadAllTextAsync(graphPath);
         try
         {
             var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Graph/orderly.graph.json"));
@@ -122,6 +127,13 @@ public sealed partial class ShellPage : Page
         var palette = Palette.FromResources(ActualTheme == ElementTheme.Dark);
         Stage.Attach(_graph, palette);
         _figure?.SetPalette(palette);
+        // the shell's code-built text takes its brushes at build time: rebuild it in the new theme
+        if (_store == null || !_booted) return;
+        _inspectorKey = _crumbKey = null;
+        _renderedFile = "\0";
+        RenderBreadcrumb(_store.State);
+        RenderInspector(_store.State);
+        RenderEditor(_store.State);
     }
 
     // ---------------------------------------------------------------- actions (main.js)
@@ -233,24 +245,30 @@ public sealed partial class ShellPage : Page
         if (s.SceneVersion != _lastScene || s.Mode != _lastMode || s.View != _lastView || s.Lens != _lastLens)
         {
             if (s.Mode != _lastMode) ApplyMode(s.Mode);
+            var t = Stress.Mark();
             var l = LayoutEngine.Compute(G, s);
+            t = Stress.Took("layout", t);
             Stage.Render(s, l);
+            t = Stress.Took("scene", t);
             ViewerNote.Text = l.Note;
             var focusNode = s.FocusId != null ? G.Node(s.FocusId) : null;
             ViewerTitle.Text = focusNode?.Name ?? G.Raw.Name;
             _lastScene = s.SceneVersion; _lastMode = s.Mode; _lastView = s.View; _lastLens = s.Lens;
             ViewerBack.IsEnabled = s.Trail.Count > 0;
             RenderBreadcrumb(s);
+            t = Stress.Took("breadcrumb", t);
             RenderInspector(s);
+            Stress.Took("inspector", t);
         }
         else if (s.HoverId != prev.HoverId || s.CursorId != prev.CursorId)
         {
             Stage.UpdateHighlights(s);
         }
-        if (s.Editor != prev.Editor || s.FocusId != prev.FocusId || s.SceneVersion != prev.SceneVersion) RenderEditor(s);
+        var te = Stress.Mark();
+        if (s.Editor != prev.Editor || s.FocusId != prev.FocusId || s.SceneVersion != prev.SceneVersion) { RenderEditor(s); te = Stress.Took("editor", te); }
         if (_figure != null) _figure.ReducedMotion = s.ReducedMotion;
         if (s.SearchOpen != prev.SearchOpen && !s.SearchOpen) CloseSearch();
-        if (s.Lens != prev.Lens || s.Mode != prev.Mode || s.View != prev.View || s.ReducedMotion != prev.ReducedMotion || s.Fidelity != prev.Fidelity || s.WorkspaceRoot != prev.WorkspaceRoot) Prefs.Save(s);
+        if (s.Lens != prev.Lens || s.Mode != prev.Mode || s.View != prev.View || s.ReducedMotion != prev.ReducedMotion || s.Fidelity != prev.Fidelity || s.WorkspaceRoot != prev.WorkspaceRoot) { Prefs.Save(s); Stress.Took("prefs", te); }
     }
 
     /// <summary>A shell toggle's pressed look: paper-2, ink, an ink-3 border (the prototype's aria-pressed style).</summary>
@@ -326,8 +344,15 @@ public sealed partial class ShellPage : Page
 
     // ---------------------------------------------------------------- breadcrumb
 
+    private string? _crumbKey;
+    private bool _booted;
+
     private void RenderBreadcrumb(AppState s)
     {
+        // a lens, view or mode change leaves the crumbs as they are
+        var key = $"{s.FocusId}|{string.Join(",", s.Trail)}|{TopBar.ColumnDefinitions[1].ActualWidth:0}|{ActualTheme}";
+        if (key == _crumbKey) return;
+        _crumbKey = key;
         Breadcrumb.Children.Clear();
         var chain = s.FocusId != null ? G.ContextChain(s.FocusId, s.Trail) : new List<Node>();
         var crumbs = new List<(string? Id, string Name, string? Type, List<Node>? Hidden)> { (null, G.Raw.Name, null, null) };
@@ -354,12 +379,12 @@ public sealed partial class ShellPage : Page
         Breadcrumb.Children.Clear();
         for (var i = 0; i < crumbs.Count; i++)
         {
-            if (i > 0) Breadcrumb.Children.Add(new TextBlock { Text = "›", Style = Res<Style>("T12"), Foreground = Res<Brush>("Ink3"), VerticalAlignment = VerticalAlignment.Center });
+            if (i > 0) Breadcrumb.Children.Add(new TextBlock { Text = "›", Style = Res<Style>("T12"), Foreground = Own("Ink3"), VerticalAlignment = VerticalAlignment.Center });
             var (id, name, type, hidden) = crumbs[i];
-            var b = new Button { Style = Res<Style>("CrumbButton") };
+            var b = Fresh(new Button { Style = Res<Style>("CrumbButton") }, "Ink2");
             var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 };
-            if (type != null) content.Children.Add(Glyph(type, Res<Brush>("Ink3")));
-            content.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center, FontWeight = i == crumbs.Count - 1 ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal, Foreground = (Brush)Res<Brush>(i == crumbs.Count - 1 ? "Ink" : "Ink2") });
+            if (type != null) content.Children.Add(Glyph(type, Own("Ink3")));
+            content.Children.Add(new TextBlock { Text = name, MaxWidth = 240, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, FontWeight = i == crumbs.Count - 1 ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal, Foreground = Own(i == crumbs.Count - 1 ? "Ink" : "Ink2") });
             b.Content = content;
             if (hidden != null) ToolTipService.SetToolTip(b, string.Join(" › ", hidden.Select(x => x.Name)));
             var target = id;

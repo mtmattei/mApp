@@ -73,8 +73,11 @@ public static class SceneGeometry
                     shape.Preview = new PreviewSpec(c.Id, c.Size ?? PreviewFrame.Lg, null, c.Interactive, c.HighlightId, c.HighlightIds, c.Recede, false);
                     if (c.Caption != null) shape.Foot = new SKRect(0, h - 28, w, h);
                     shape.Regions = previews.Regions(shape.Preview);
-                    foreach (var region in shape.Regions)
+                    // the prototype stacks regions in walk order (a nested instance after its container), so the later
+                    // one is on top and takes the pointer; the first matching hit wins here, so add them topmost first
+                    for (var ri = shape.Regions.Count - 1; ri >= 0; ri--)
                     {
+                        var region = shape.Regions[ri];
                         var r = region.Rect;
                         r.Offset(shape.PreviewRect.Value.Left, shape.PreviewRect.Value.Top);
                         AnchorsFor($"{c.Key}/{region.InstanceId}", r);

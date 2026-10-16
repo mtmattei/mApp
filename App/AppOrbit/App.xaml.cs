@@ -34,11 +34,16 @@ public partial class App : Application
     /// <summary>An entity to open on, from --focus=&lt;id&gt; or APP_ORBIT_FOCUS: the web prototype's #entity-id deep link.</summary>
     public static string? LaunchFocus { get; private set; }
 
+    /// <summary>A graph file to inspect instead of the bundled one, from --graph=&lt;path&gt; or APP_ORBIT_GRAPH.</summary>
+    public static string? LaunchGraph { get; private set; }
+
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         MainWindow = new Window { Title = "App Orbit" };
         Window = MainWindow;
-        LaunchFocus = (args.Arguments ?? "").Split(' ').Select(a => a.StartsWith("--focus=") ? a[8..] : null).FirstOrDefault(a => a != null) ?? Environment.GetEnvironmentVariable("APP_ORBIT_FOCUS");
+        var launchArgs = (args.Arguments ?? "").Split(' ');
+        LaunchFocus = launchArgs.Select(a => a.StartsWith("--focus=") ? a[8..] : null).FirstOrDefault(a => a != null) ?? Environment.GetEnvironmentVariable("APP_ORBIT_FOCUS");
+        LaunchGraph = launchArgs.Select(a => a.StartsWith("--graph=") ? a[8..] : null).FirstOrDefault(a => a != null) ?? Environment.GetEnvironmentVariable("APP_ORBIT_GRAPH");
 #if DEBUG
         // UseStudio() blocks the window when no DevServer is reachable, so headless runs opt out.
         if (Environment.GetEnvironmentVariable("APP_NO_HOTDESIGN") != "1")

@@ -202,6 +202,8 @@ export function contextScreen(g, id, trail = []) {
 }
 
 // ---- search ----
+const SEARCH_RANK = { feature: 0, screen: 1, component: 2, viewmodel: 3, 'component-instance': 4, property: 5, command: 6, state: 7, route: 8 };
+
 export function search(g, query, limit = 12) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
@@ -217,7 +219,8 @@ export function search(g, query, limit = 12) {
   return g.raw.nodes
     .map((n) => ({ n, s: score(n) }))
     .filter((x) => x.s !== null)
-    .sort((a, b) => a.s - b.s || a.n.name.localeCompare(b.n.name))
+    // same name (a screen and a property both called "Job"): the larger entity first
+    .sort((a, b) => a.s - b.s || a.n.name.localeCompare(b.n.name) || SEARCH_RANK[a.n.type] - SEARCH_RANK[b.n.type])
     .slice(0, limit)
     .map((x) => x.n);
 }
