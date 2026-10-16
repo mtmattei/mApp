@@ -493,3 +493,7 @@ solution-config.props
 shots/*.out
 shots/*.log
 shots-dark/
+tools/record/raw.mp4
+tools/record/captions.tsv
+tools/record/app.out
+tools/record/captions.ass

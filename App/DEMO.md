@@ -2,6 +2,12 @@
 
 About five minutes. Say the line, then do the action. Never talk while typing.
 
+**Pitch:** Before you change a screen in code you didn't write, App Orbit shows you everything it touches.
+
+**Honest framing:** this is an interaction prototype on a hand-authored graph of a sample app. The question for the room: is this the view you'd want before changing a screen? If yes, the next step is generating the graph from a real app.
+
+**Backup:** `media/app-orbit-scenario.mp4` is a 72-second captioned run of a real triage task, if the live app misbehaves.
+
 **Spine (if you lose your place):** App Orbit lays an app's structure out in space, so you can see how it fits together before you read the code.
 
 ## Before you go on
