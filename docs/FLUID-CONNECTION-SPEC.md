@@ -2,7 +2,7 @@
 
 **Status:** Draft, pre-implementation. Build in a fresh session reading this cold.
 **Targets:** `Atlas.App` (`MapModel`, `MapPage`, new services, `App.xaml.cs`, Desktop `Program.cs`), `Atlas.Runtime` (`ModelMerger`, `RuntimeBridge`), `Atlas.Tests`.
-**Stack pin:** Uno.Sdk 6.5.36, net10.0, MVUX, Uno.Extensions.Navigation.WinUI 7.1.4, System.Text.Json 10.0.9. See `global.json` / `Directory.Packages.props`.
+**Stack pin:** Uno.Sdk 6.7.30, net10.0, MVUX, Uno.Extensions.Navigation.WinUI 7.3.6, System.Text.Json 10.0.9. See `global.json` / `Directory.Packages.props`.
 
 ## Problem
 
