@@ -333,6 +333,12 @@ Second pass, before the first demo (`uno-audit` with `uno-platform-agent`):
 | Inspector | dotted class names broke mid-word (`CheckoutP` / `age`), as in the prototype | a zero-width break after each dot: names wrap at the namespace boundary |
 | Build and journey | Debug and Release, light and dark | 0 warnings; 73/73 in both themes |
 
+Third pass, the completeness checklist (`COMPLETENESS.md`): real key presses showed `/` typing into the
+search box and `?` opening search; breakpoints never applied at launch; the toolbar overflowed at the old
+1100 minimum (now 1180); window sizing mixed logical and physical pixels on scaled displays; light-theme
+muted text was 3.3–3.6:1 (now `#5E6471`, 4.6–5.4:1, prototype CSS updated to match); a missing relationship
+target was counted but not listed. All fixed; journey 74/74 in both themes.
+
 ## What was learned building it
 
 - A page's `Resources` indexer does not see App.xaml or the theme entries; code-behind resolves

@@ -18,7 +18,7 @@ public sealed record Palette(
 {
     public static readonly Palette Light = new(
         SKColor.Parse("#F5F4EF"), SKColor.Parse("#ECEBE4"), SKColor.Parse("#E3E2DA"),
-        SKColor.Parse("#1D2430"), SKColor.Parse("#4A5160"), SKColor.Parse("#7A8190"),
+        SKColor.Parse("#1D2430"), SKColor.Parse("#4A5160"), SKColor.Parse("#5E6471"),
         SKColor.Parse("#CFD2D8"), SKColor.Parse("#E1E3E7"),
         SKColor.Parse("#2457D6"), SKColor.Parse("#2457D6").WithAlpha(31), SKColor.Parse("#B4432F"), SKColor.Parse("#2F7D4F"),
         SKColor.Parse("#1D2430"), SKColor.Parse("#5B6472"), SKColor.Parse("#4B55B8"), SKColor.Parse("#A66A00"), SKColor.Parse("#0F7B74"), SKColor.Parse("#7A4E8C"),

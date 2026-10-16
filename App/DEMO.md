@@ -20,7 +20,7 @@ dotnet run --project AppOrbit\AppOrbit.csproj -c Release -f net10.0-desktop
 
 - [ ] Run **Release**. A Debug build waits for the Hot Design dev server when started outside the IDE.
 - [ ] Rehearse once on the demo machine and its display. Every check so far ran on Linux.
-- [ ] Display scaling leaves at least 1100 × 640 for the window, which is the app's minimum size.
+- [ ] On Windows the app opens maximized. It needs at least 1180 × 640 effective pixels: a 1920 × 1080 display at up to 150% scaling works; a 1366 × 768 display at 125% does not.
 - [ ] The app remembers its last state. Reset it before going on:
   - Structure lens selected (press `1`).
   - Wire, Flat, Dock and Motion all off.

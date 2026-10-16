@@ -176,6 +176,7 @@ internal static class Journey
         Check(S().FocusId == "prop.cart.can-place-order", "click a member → detail level");
         Check(HasCard("prop.cart.has-items#out"), "CanPlaceOrder reads HasItems");
         Check(HasCard("state.place-order.disabled#in"), "the Disabled state depends on it");
+        Check(page.BreadcrumbFits, $"the breadcrumb fits its column at the deepest focus ({page.BreadcrumbText})");
         await Shot("06-can-place-order");
 
         page.FocusSearchForJourney(); await Settle(300);

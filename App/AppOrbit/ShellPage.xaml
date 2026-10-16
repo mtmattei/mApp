@@ -16,7 +16,7 @@
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" MinWidth="160" />
-        <ColumnDefinition Width="240" />
+        <ColumnDefinition x:Name="SearchColumn" Width="240" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
@@ -129,7 +129,7 @@
             <TextBlock x:Name="CameraReadout" Style="{StaticResource Mono11}" Foreground="{ThemeResource Ink3}" VerticalAlignment="Center" />
             <Button x:Name="CameraReset" ToolTipService.ToolTip="Reset camera (0)" Grid.Column="1" Content="reset view" Style="{StaticResource LinkButton}" Click="OnCameraReset" AutomationProperties.Name="Reset camera (0)" />
             <Button x:Name="LayoutReset" ToolTipService.ToolTip="Put moved cards back" Grid.Column="2" Content="reset layout" Style="{StaticResource LinkButton}" Click="OnLayoutReset" Visibility="Collapsed" AutomationProperties.Name="Put moved cards back" />
-            <TextBlock Grid.Column="3" Text="wheel to zoom levels · drag the canvas to orbit · drag a card to move it" Style="{StaticResource T11}" Foreground="{ThemeResource Ink3}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3" Text="wheel to zoom levels · drag the canvas to orbit · drag a card to move it" Style="{StaticResource T11}" Foreground="{ThemeResource Ink3}" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
           </Grid>
         </Grid>
       </Canvas>

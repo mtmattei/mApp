@@ -8,6 +8,15 @@ public sealed partial class ShellPage
     internal Store StoreForJourney => Store;
     internal Scene.SceneCanvas StageForJourney => Stage;
 
+    internal bool BreadcrumbFits
+    {
+        get
+        {
+            Breadcrumb.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+            return Breadcrumb.DesiredSize.Width <= TopBar.ColumnDefinitions[1].ActualWidth + 1;
+        }
+    }
+
     internal string BreadcrumbText => string.Join(" ", Breadcrumb.Children.Select(TextOf));
 
     internal string InspectorText => string.Join("\n", Inspector.Children.Select(TextOf));

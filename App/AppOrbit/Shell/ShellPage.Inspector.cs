@@ -76,7 +76,7 @@ public sealed partial class ShellPage
         eyebrow.Children.Add(Text(NodeType.Label(n.Type), "T11", "Ink3"));
         root.Children.Add(eyebrow);
         root.Children.Add(Text(n.Name, "T20", wrap: true));
-        if (n.Summary != null) { var p = Text(n.Summary, "T12", "Ink2", wrap: true); p.Margin = new Thickness(0, 8, 0, 0); p.MaxWidth = 380; root.Children.Add(p); }
+        if (n.Summary != null) { var p = Text(n.Summary, "T12", "Ink2", wrap: true); p.Margin = new Thickness(0, 8, 0, 0); p.MaxWidth = 380; p.HorizontalAlignment = HorizontalAlignment.Left; root.Children.Add(p); }
         root.Children.Add(SourceRow(n.Source, s.WorkspaceRoot));
 
         // declared
@@ -117,7 +117,14 @@ public sealed partial class ShellPage
             grp.Children.Add(nameRow);
             foreach (var (e, other) in items)
             {
-                if (other == null) continue;
+                if (other == null)
+                {
+                    // a reference the graph does not define: listed, so the count above stays true and the data problem is visible
+                    var missing = Text($"not in the graph: {(dir == "out" ? e.To : e.From)}", "Mono11", "Danger");
+                    missing.Margin = new Thickness(20, 2, 0, 2);
+                    grp.Children.Add(missing);
+                    continue;
+                }
                 grp.Children.Add(RelRow(other, e, ContextOf(other, contextScreen)));
             }
             root.Children.Add(grp);
@@ -236,7 +243,7 @@ public sealed partial class ShellPage
         head.Children.Add(TagChip(ev.Kind, ev.Kind == "observed" ? "Ok" : "Ink3", ev.Kind == "inferred"));
         head.Children.Add(Text($"{Math.Round(ev.Confidence * 100)}% confidence", "T12", "Ink2"));
         body.Children.Add(head);
-        if (ev.Rationale != null) { var rt = Text(ev.Rationale, "T12", "Ink2", wrap: true); rt.MaxWidth = 380; body.Children.Add(rt); }
+        if (ev.Rationale != null) { var rt = Text(ev.Rationale, "T12", "Ink2", wrap: true); rt.MaxWidth = 380; rt.HorizontalAlignment = HorizontalAlignment.Left; body.Children.Add(rt); }
         var r = ev.Source ?? source;
         var fl = G.FileLine(r);
         if (fl != null && r != null)
@@ -269,7 +276,7 @@ public sealed partial class ShellPage
         root.Children.Add(eyebrow);
         root.Children.Add(Text(r.Name, "T20"));
         root.Children.Add(FigureHost());
-        if (r.Description != null) { var p = Text(r.Description, "T12", "Ink2", wrap: true); p.Margin = new Thickness(0, 8, 0, 0); p.MaxWidth = 380; root.Children.Add(p); }
+        if (r.Description != null) { var p = Text(r.Description, "T12", "Ink2", wrap: true); p.Margin = new Thickness(0, 8, 0, 0); p.MaxWidth = 380; p.HorizontalAlignment = HorizontalAlignment.Left; root.Children.Add(p); }
         var entry = G.Node(r.Entry);
         if (entry != null)
         {
@@ -293,7 +300,7 @@ public sealed partial class ShellPage
         root.Children.Add(statsBlock);
         var inferred = r.Edges.Count(e => e.IsInferred);
         var q = Text($"{inferred} relationship{(inferred == 1 ? " is" : "s are")} inferred and marked as such. Everything else is declared in source.", "T12", "Ink3", wrap: true);
-        q.Margin = new Thickness(0, 8, 0, 0); q.MaxWidth = 380;
+        q.Margin = new Thickness(0, 8, 0, 0); q.MaxWidth = 380; q.HorizontalAlignment = HorizontalAlignment.Left;
         root.Children.Add(q);
         root.Children.Add(Section("Features", G.NodesOf(NodeType.Feature).Count));
         foreach (var f in G.NodesOf(NodeType.Feature))

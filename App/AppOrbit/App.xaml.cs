@@ -65,11 +65,19 @@ public partial class App : Application
         // The Win32 GL render thread access-violates at degenerate sizes; the shell needs the width anyway.
         if (MainWindow.AppWindow.Presenter is OverlappedPresenter presenter)
         {
-            presenter.PreferredMinimumWidth = 1100;
+            presenter.PreferredMinimumWidth = 1180;
             presenter.PreferredMinimumHeight = 640;
         }
 
         MainWindow.Activate();
+
+        // The launch size is in effective pixels and can exceed a scaled display (1440 wide at 150% is 2160 pixels);
+        // without an explicit APP_ORBIT_SIZE, Windows opens maximized. The shell sets the scale-aware minimum once loaded.
+        if (OperatingSystem.IsWindows() && Environment.GetEnvironmentVariable("APP_ORBIT_SIZE") == null
+            && MainWindow.AppWindow.Presenter is OverlappedPresenter overlapped)
+        {
+            overlapped.Maximize();
+        }
     }
 
     private void OnNavigationFailed(object sender, NavigationFailedEventArgs e)

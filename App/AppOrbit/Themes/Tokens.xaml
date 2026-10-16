@@ -15,7 +15,7 @@
       <Color x:Key="Color.Paper3">#E3E2DA</Color>
       <Color x:Key="Color.Ink">#1D2430</Color>
       <Color x:Key="Color.Ink2">#4A5160</Color>
-      <Color x:Key="Color.Ink3">#7A8190</Color>
+      <Color x:Key="Color.Ink3">#5E6471</Color>   <!-- 4.6:1 or better on every light paper (WCAG AA) -->
       <Color x:Key="Color.Rule">#CFD2D8</Color>
       <Color x:Key="Color.Rule2">#E1E3E7</Color>
       <Color x:Key="Color.Focus">#2457D6</Color>
@@ -177,7 +177,6 @@
   <!-- shell geometry -->
   <GridLength x:Key="TopBarHeight">48</GridLength>
   <GridLength x:Key="EditorWidth">300</GridLength>
-  <GridLength x:Key="InspectorWidth">320</GridLength>
   <x:Double x:Key="Dock.W">380</x:Double>
   <x:Double x:Key="Dock.H">260</x:Double>
   <x:Double x:Key="Dock.Gap">16</x:Double>

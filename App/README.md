@@ -50,7 +50,7 @@ Three gates, in order of strength:
    relationship tracing, inspection, the editor sync, the inferred edge,
    fidelity, card moves, flat view, the docking path, reduced motion, the
    figure, the keyboard cursor, pointer hit tests on the projected geometry.
-   73 checks, `tools/run-xvfb.sh` (and `tools/run-xvfb.sh dark`).
+   74 checks, `tools/run-xvfb.sh` (and `tools/run-xvfb.sh dark`).
 3. **Screenshots.** One per stop in `shots/`, compared by eye with
    `../tests/screenshots/`.
 
@@ -67,6 +67,9 @@ the busiest layout went from 1.13 ms to 0.54 ms average under software
 rendering), and the lightweight-styling overrides reference the colour tokens
 instead of repeating them. The journey logs the paint cost of its busiest
 layout on every run.
+
+`COMPLETENESS.md` applies the completeness checklist (screens through testing)
+with the evidence for each row. `DEMO.md` is the demo cue card.
 
 ## Decisions
 

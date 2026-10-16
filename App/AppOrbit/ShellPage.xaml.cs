@@ -27,6 +27,7 @@ public sealed partial class ShellPage : Page
         InitializeComponent();
         Loaded += OnLoaded;
         PreviewKeyDown += OnKeyDown;
+        PreviewKeyUp += OnKeyUp;
         ViewerSlot.SizeChanged += (_, _) => PlaceViewer();
         Shell.SizeChanged += (_, _) => { ApplyBreakpoints(); PlaceViewer(); };
         ActualThemeChanged += (_, _) => ApplyPalette();
@@ -62,7 +63,9 @@ public sealed partial class ShellPage : Page
         BuildEditorFiles();
         _store.Changed += OnStateChanged;
 
-        _ = EnsureWindowSizeAsync();
+        ApplyMinimumWindowSize();
+        XamlRoot!.Changed += (_, _) => ApplyMinimumWindowSize();
+        if (OperatingSystem.IsLinux()) _ = EnsureWindowSizeAsync();
 
         // first paint, honouring a deep link
         var deep = App.LaunchFocus;
@@ -71,12 +74,22 @@ public sealed partial class ShellPage : Page
         else
             _store.Dispatch(s => s with { SceneVersion = 1 });
         _dock?.Place();
+        ApplyBreakpoints();   // the window may already be at its final size: no resize will come to apply them
         Stage.ResetCamera(_store.State.View);
         FocusViewer();
         Journey.Start(this);
     }
 
-    /// <summary>Re-asks for the launch size until the root reports it, a few times at most.</summary>
+    /// <summary>The shell's minimum is 1180 × 640 effective pixels (the top bar needs it); the presenter takes physical pixels, so it follows the display scale.</summary>
+    private void ApplyMinimumWindowSize()
+    {
+        if (App.Window?.AppWindow.Presenter is not Microsoft.UI.Windowing.OverlappedPresenter presenter || XamlRoot == null) return;
+        var scale = XamlRoot.RasterizationScale;
+        presenter.PreferredMinimumWidth = (int)Math.Ceiling(1180 * scale);
+        presenter.PreferredMinimumHeight = (int)Math.Ceiling(640 * scale);
+    }
+
+    /// <summary>X11 applies a resize intermittently: re-asks for the launch size until the root reports it, a few times at most.</summary>
     internal async Task EnsureWindowSizeAsync()
     {
         var want = App.DesiredSize;
@@ -257,16 +270,17 @@ public sealed partial class ShellPage : Page
         AutomationProperties.SetItemStatus(b, on ? "selected" : "");
     }
 
-    /// <summary>The prototype's breakpoints: the inspector narrows to 280 under 1400; under 1100 the editor collapses while expanded.</summary>
+    /// <summary>The prototype's breakpoints: the inspector narrows to 280 under 1400, the search field to 150 under 1300.
+    /// The window's minimum (1180) keeps the editor column; the prototype's narrower layouts are out of scope on desktop.</summary>
     private void ApplyBreakpoints()
     {
         if (_store == null) return;
         var w = ActualWidth;
         var docked = _store.State.Mode == Modes.Docked;
-        var inspectorW = w < 1400 ? 280 : 320;
-        if (!docked) InspectorColumn.Width = new GridLength(inspectorW);
-        EditorColumn.Width = w < 1100 && !docked ? new GridLength(0) : Res<GridLength>("EditorWidth");
-        Editor.Visibility = w < 1100 && !docked ? Visibility.Collapsed : Visibility.Visible;
+        if (!docked) InspectorColumn.Width = new GridLength(w < 1400 ? 280 : 320);
+        SearchColumn.Width = new GridLength(w < 1300 ? 150 : 240);
+        // the breadcrumb measures its column, which settles after this layout pass
+        DispatcherQueue.TryEnqueue(() => { if (_store != null) RenderBreadcrumb(_store.State); });
     }
 
     /// <summary>Docked: the slot column collapses, the inspector takes the width, the viewer's chrome changes.</summary>
@@ -274,7 +288,7 @@ public sealed partial class ShellPage : Page
     {
         var docked = mode == Modes.Docked;
         SlotColumn.Width = docked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-        InspectorColumn.Width = docked ? new GridLength(1, GridUnitType.Star) : Res<GridLength>("InspectorWidth");
+        InspectorColumn.Width = docked ? new GridLength(1, GridUnitType.Star) : new GridLength(ActualWidth < 1400 ? 280 : 320);
         InspectorScroll.Padding = docked ? new Thickness(16, 16, 24, 16) : new Thickness(16);
         LensTabs.Visibility = docked ? Visibility.Collapsed : Visibility.Visible;
         ViewerFoot.Visibility = docked ? Visibility.Collapsed : Visibility.Visible;
@@ -323,6 +337,21 @@ public sealed partial class ShellPage : Page
             var hidden = chain.Take(chain.Count - 2).ToList();
             crumbs = new() { crumbs[0], (hidden[^1].Id, "…", null, hidden), crumbs[^2], crumbs[^1] };
         }
+        BuildBreadcrumb(crumbs);
+
+        // too wide for its column: keep the application and the focus, fold everything between into "…"
+        var room = TopBar.ColumnDefinitions[1].ActualWidth;
+        Breadcrumb.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+        if (room > 0 && Breadcrumb.DesiredSize.Width > room && chain.Count > 1)
+        {
+            var hidden = chain.Take(chain.Count - 1).ToList();
+            BuildBreadcrumb(new() { crumbs[0], (hidden[^1].Id, "…", null, hidden), crumbs[^1] });
+        }
+    }
+
+    private void BuildBreadcrumb(List<(string? Id, string Name, string? Type, List<Node>? Hidden)> crumbs)
+    {
+        Breadcrumb.Children.Clear();
         for (var i = 0; i < crumbs.Count; i++)
         {
             if (i > 0) Breadcrumb.Children.Add(new TextBlock { Text = "›", Style = Res<Style>("T12"), Foreground = Res<Brush>("Ink3"), VerticalAlignment = VerticalAlignment.Center });
@@ -388,7 +417,11 @@ public sealed partial class ShellPage : Page
         var alt = IsDown(VirtualKey.Menu);
         switch (e.Key)
         {
-            case VirtualKey.Divide: case (VirtualKey)191: SearchBox.Focus(FocusState.Keyboard); SearchBox.SelectAll(); break;
+            case VirtualKey.Divide: case (VirtualKey)191:
+                if (shift && e.Key == (VirtualKey)191) { _ = ShowHelpAsync(); break; }
+                // focus moves on key-up: the '/' character is delivered between down and up, and must not land in the box
+                _searchKeyPending = true;
+                break;
             case VirtualKey.Add: case (VirtualKey)187: ZoomIn(); break;
             case VirtualKey.Subtract: case (VirtualKey)189: case VirtualKey.Back: ZoomOut(); break;
             case VirtualKey.Escape: if (typing) { CloseSearch(); FocusViewer(); } else Focus(_store.State.FocusId); break;
@@ -420,9 +453,19 @@ public sealed partial class ShellPage : Page
                 break;
             }
             default:
-                if (shift && e.Key == (VirtualKey)191) { _ = ShowHelpAsync(); break; }
                 return;
         }
+        e.Handled = true;
+    }
+
+    private bool _searchKeyPending;
+
+    private void OnKeyUp(object sender, KeyRoutedEventArgs e)
+    {
+        if (!_searchKeyPending || e.Key is not (VirtualKey.Divide or (VirtualKey)191)) return;
+        _searchKeyPending = false;
+        SearchBox.Focus(FocusState.Keyboard);
+        SearchBox.SelectAll();
         e.Handled = true;
     }
 
