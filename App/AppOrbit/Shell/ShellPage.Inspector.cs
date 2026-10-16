@@ -151,7 +151,8 @@ public sealed partial class ShellPage
         var row = kv.RowDefinitions.Count;
         kv.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         var kt = Text(k, "T12", "Ink3"); Grid.SetRow(kt, row); kv.Children.Add(kt);
-        var vt = Text(v, "Mono11", valueBrush, wrap: true); Grid.SetRow(vt, row); Grid.SetColumn(vt, 1); kv.Children.Add(vt);
+        // a zero-width space after each dot: dotted names wrap at a namespace boundary, never mid-word
+        var vt = Text(v.Replace(".", ".\u200B"), "Mono11", valueBrush, wrap: true); Grid.SetRow(vt, row); Grid.SetColumn(vt, 1); kv.Children.Add(vt);
     }
 
     private Button RelRow(Node other, Edge? e, string ctx)

@@ -322,6 +322,17 @@ disposal, `winui-xaml` for the shell.
 | Localization | user-visible text is inline, no `x:Uid` | deliberate for the prototype port; a localization pass is a separate task |
 | Runtime verify | `uno-verify` needs the App MCP, absent in this container | the journey runner and screenshots stand in; a Windows run is still owed |
 
+Second pass, before the first demo (`uno-audit` with `uno-platform-agent`):
+
+| Area | Finding | Resolution |
+|---|---|---|
+| Stack | `6.7.30` is still the newest stable Uno.Sdk; SkiaSharp 4 is stable | Uno.Sdk unchanged; SkiaSharp 4 deferred until after the demo (a graphics-library swap needs its own pass) |
+| Project setup | single project, `UnoSingleProject`, central package management, renderer split from the `SKCanvasElement`, reused paints, depth-sorted paint order, timer-driven animation | conforms to `uno-platform-agent` |
+| TFMs | desktop only, no base `net10.0` | deliberate: one target, nothing shared with a class library |
+| Hygiene | an unused `ApplicationExecutionState` alias left from the template in `GlobalUsings.cs` | removed |
+| Inspector | dotted class names broke mid-word (`CheckoutP` / `age`), as in the prototype | a zero-width break after each dot: names wrap at the namespace boundary |
+| Build and journey | Debug and Release, light and dark | 0 warnings; 73/73 in both themes |
+
 ## What was learned building it
 
 - A page's `Resources` indexer does not see App.xaml or the theme entries; code-behind resolves
