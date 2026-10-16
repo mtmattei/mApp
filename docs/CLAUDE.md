@@ -1,5 +1,8 @@
 # CLAUDE.md — Atlas (Agentic App Map)
 
+> **Legacy (Atlas).** App Orbit is now the main project in this repository; start at the root
+> [README](../README.md). This file describes Atlas and its conventions, which do not govern `AppOrbit/`.
+
 Operating guide for Claude Code on this repo. Read this, then read `SPEC.md`. Build against
 `samples/rounds-app-model.json`. The visual target is `design/atlas-prototype.html`.
 

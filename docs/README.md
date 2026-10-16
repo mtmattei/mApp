@@ -1,5 +1,8 @@
 # Atlas — Agentic App Map
 
+> **Legacy (Atlas).** App Orbit is now the main project in this repository; start at the root
+> [README](../README.md). This file describes Atlas and its conventions, which do not govern `AppOrbit/`.
+
 A cross-platform .NET (Uno Platform) tool that renders an Uno app's full structure as an
 interactive canvas, and exposes that structure as one model a developer and an AI agent both read.
 

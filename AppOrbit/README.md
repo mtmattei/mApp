@@ -27,7 +27,8 @@ that map from a real codebase is the next step, and the reason it lives in this 
 
 ## How it relates to Atlas
 
-Atlas (the rest of this repository) and App Orbit answer neighbouring questions.
+App Orbit is the main project in this repository. Atlas, the legacy projects at the repository
+root, answers a neighbouring question, and its extractor is App Orbit's way to real source.
 
 | | Atlas | App Orbit |
 |---|---|---|

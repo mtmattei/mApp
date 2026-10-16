@@ -1,5 +1,8 @@
 # Running Atlas as a tool
 
+> **Legacy (Atlas).** App Orbit is now the main project in this repository; start at the root
+> [README](README.md). This file describes Atlas and its conventions, which do not govern `AppOrbit/`.
+
 Atlas has two halves: the **viewer** (the desktop app you look at) and the **agent**
 (a tiny package your app references so the viewer can see it navigate).
 
