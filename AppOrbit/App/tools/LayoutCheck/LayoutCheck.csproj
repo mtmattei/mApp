@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Layout parity check: compiles the app's pure modules (Graph, Layout, AppState) into a console
+    app and diffs every case against tools/fixtures/layouts.json, which the prototype's own
+    layout.js produced. No Uno reference: the modules must stay UI-free.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <RootNamespace>LayoutCheck</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\AppOrbit\Graph\*.cs" Link="Graph\%(Filename)%(Extension)" />
+    <Compile Include="..\..\AppOrbit\Layout\*.cs" Link="Layout\%(Filename)%(Extension)" />
+    <Compile Include="..\..\AppOrbit\State\AppState.cs" Link="State\AppState.cs" />
+    <Using Include="System.Collections.Immutable" />
+  </ItemGroup>
+</Project>

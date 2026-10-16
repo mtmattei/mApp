@@ -9,7 +9,7 @@
     <PackageVersion Include="Anthropic" Version="12.31.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageVersion Include="System.Text.Json" Version="10.0.9" />
-    <PackageVersion Include="Uno.Extensions.Navigation.WinUI" Version="7.1.4" />
+    <PackageVersion Include="Uno.Extensions.Navigation.WinUI" Version="7.3.6" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />

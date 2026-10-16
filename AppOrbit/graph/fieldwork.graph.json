@@ -1,0 +1,7392 @@
+{
+ "schemaVersion": "0.1",
+ "graphId": "fieldwork",
+ "name": "Fieldwork",
+ "description": "Hand-authored app graph for a field-service app (Uno Platform, MVUX). Four features, eight screens, seven view models (JobViewModel is shared by Job and Signature across two features), two shared components with six uses (StatusChip twice on Job) and one unused component, ten routes including a Job ↔ Map cycle, twenty-three states, two inferred relationships and one observed state.",
+ "entry": "screen.today",
+ "files": [
+  {
+   "id": "f.app",
+   "path": "Fieldwork/App.xaml.cs",
+   "language": "csharp",
+   "startLine": 52,
+   "lines": [
+    "        private static void RegisterRoutes(IViewRegistry views, IRouteRegistry routes)",
+    "        {",
+    "            views.Register(",
+    "                new ViewMap(ViewModel: typeof(ShellViewModel)),",
+    "                new ViewMap<TodayPage, TodayViewModel>(),",
+    "                new ViewMap<JobPage, JobViewModel>(Data: new DataMap<Job>()),",
+    "                new ViewMap<MapPage, MapViewModel>(),",
+    "                new ViewMap<PhotosPage, PhotosViewModel>(Data: new DataMap<Job>()),",
+    "                new ViewMap<SignaturePage, JobViewModel>(),",
+    "                new ViewMap<OutboxPage, OutboxViewModel>(),",
+    "                new ViewMap<ProfilePage, ProfileViewModel>(),",
+    "                new ViewMap<SettingsPage, SettingsViewModel>()",
+    "            );",
+    "",
+    "            routes.Register(",
+    "                new RouteMap(\"\", View: views.FindByViewModel<ShellViewModel>(),",
+    "                    Nested:",
+    "                    [",
+    "                        new (\"Today\", View: views.FindByView<TodayPage>(), IsDefault: true),",
+    "                        new (\"Job\", View: views.FindByView<JobPage>()),",
+    "                        new (\"Map\", View: views.FindByView<MapPage>()),",
+    "                        new (\"Photos\", View: views.FindByView<PhotosPage>()),",
+    "                        new (\"Signature\", View: views.FindByView<SignaturePage>()),",
+    "                        new (\"Outbox\", View: views.FindByView<OutboxPage>()),",
+    "                        new (\"Profile\", View: views.FindByView<ProfilePage>()),",
+    "                        new (\"Settings\", View: views.FindByView<SettingsPage>()),",
+    "                    ]",
+    "                )",
+    "            );",
+    "        }"
+   ]
+  },
+  {
+   "id": "f.today-xaml",
+   "path": "Fieldwork/Presentation/TodayPage.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<Page x:Class=\"Fieldwork.Presentation.TodayPage\"",
+    "      xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "      xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"",
+    "      xmlns:uen=\"using:Uno.Extensions.Navigation.UI\"",
+    "      xmlns:mvux=\"using:Uno.Extensions.Reactive.UI\"",
+    "      xmlns:controls=\"using:Fieldwork.Controls\">",
+    "  <Grid RowDefinitions=\"Auto,Auto,*\" Padding=\"16\">",
+    "    <Button x:Name=\"AvatarButton\" HorizontalAlignment=\"Left\"",
+    "            uen:Navigation.Request=\"Profile\" Content=\"&#xE77B;\" />",
+    "    <TextBlock Text=\"Today\" Margin=\"48,0,0,0\" Style=\"{StaticResource TitleLarge}\" />",
+    "    <Button x:Name=\"OutboxButton\" HorizontalAlignment=\"Right\"",
+    "            uen:Navigation.Request=\"Outbox\"",
+    "            Content=\"{Binding PendingUploads, Converter={StaticResource PendingLabel}}\" />",
+    "    <InfoBar x:Name=\"OfflineBanner\" Grid.Row=\"1\" Severity=\"Warning\"",
+    "             IsOpen=\"{Binding IsOffline}\"",
+    "             Message=\"{Binding LastSyncedLabel}\" />",
+    "    <mvux:FeedView Grid.Row=\"2\" x:Name=\"JobsFeed\" Source=\"{Binding Jobs}\"",
+    "                   RefreshCommand=\"{Binding Refresh}\">",
+    "      <DataTemplate>",
+    "        <ListView x:Name=\"JobList\" ItemsSource=\"{Binding Data}\"",
+    "                  uen:Navigation.Request=\"Job\">",
+    "          <ListView.ItemTemplate>",
+    "            <DataTemplate>",
+    "              <Grid ColumnDefinitions=\"*,Auto\">",
+    "                <TextBlock Text=\"{Binding CustomerName}\" />",
+    "                <controls:StatusChip Grid.Column=\"1\" Status=\"{Binding Status}\" />",
+    "              </Grid>",
+    "            </DataTemplate>",
+    "          </ListView.ItemTemplate>",
+    "        </ListView>",
+    "      </DataTemplate>",
+    "      <mvux:FeedView.ProgressTemplate>",
+    "        <DataTemplate><ProgressRing IsActive=\"True\" /></DataTemplate>",
+    "      </mvux:FeedView.ProgressTemplate>",
+    "      <mvux:FeedView.NoneTemplate>",
+    "        <DataTemplate><TextBlock Text=\"No jobs today. Enjoy the quiet.\" /></DataTemplate>",
+    "      </mvux:FeedView.NoneTemplate>",
+    "      <mvux:FeedView.ErrorTemplate>",
+    "        <DataTemplate><InfoBar Severity=\"Error\" IsOpen=\"True\" Message=\"Couldn't load today's jobs\" /></DataTemplate>",
+    "      </mvux:FeedView.ErrorTemplate>",
+    "    </mvux:FeedView>",
+    "  </Grid>",
+    "</Page>"
+   ]
+  },
+  {
+   "id": "f.today-vm",
+   "path": "Fieldwork/Presentation/TodayModel.cs",
+   "language": "csharp",
+   "startLine": 1,
+   "lines": [
+    "namespace Fieldwork.Presentation;",
+    "",
+    "public partial record TodayModel(IJobService Jobs, IConnectivity Network, IOutboxStore Outbox)",
+    "{",
+    "    public IListFeed<JobSummary> Jobs => ListFeed.Async(Jobs.TodayAsync);",
+    "",
+    "    public IFeed<bool> IsOffline => Network.IsOffline;",
+    "",
+    "    public IFeed<string> LastSyncedLabel => Outbox.LastSyncedAt.Select(t => $\"Offline. Last synced {t:t}.\");",
+    "",
+    "    public IFeed<int> PendingUploads => Outbox.Pending.Select(p => p.Count);",
+    "",
+    "    public async ValueTask Refresh(CancellationToken ct) => await Jobs.RefreshAsync(ct);",
+    "}"
+   ]
+  },
+  {
+   "id": "f.job-xaml",
+   "path": "Fieldwork/Presentation/JobPage.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<Page x:Class=\"Fieldwork.Presentation.JobPage\"",
+    "      xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "      xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"",
+    "      xmlns:uen=\"using:Uno.Extensions.Navigation.UI\"",
+    "      xmlns:mvux=\"using:Uno.Extensions.Reactive.UI\"",
+    "      xmlns:controls=\"using:Fieldwork.Controls\">",
+    "  <mvux:FeedView x:Name=\"JobFeed\" Source=\"{Binding Job}\">",
+    "    <DataTemplate>",
+    "      <Grid RowDefinitions=\"Auto,Auto,Auto,Auto,*,Auto\" Padding=\"16\" RowSpacing=\"12\">",
+    "        <TextBlock x:Name=\"CustomerText\" Text=\"{Binding Data.CustomerName}\" Style=\"{StaticResource TitleLarge}\" />",
+    "        <controls:StatusChip x:Name=\"StatusHeader\" HorizontalAlignment=\"Right\"",
+    "                             Status=\"{Binding Status}\" />",
+    "        <controls:StatusChip x:Name=\"SyncChip\" Grid.Row=\"1\" VerticalAlignment=\"Bottom\"",
+    "                             Status=\"{Binding HasUnsyncedChangesSinceLastSuccessfulUpload, Converter={StaticResource SyncStatus}}\" />",
+    "        <TextBlock x:Name=\"AddressText\" Grid.Row=\"1\" Text=\"{Binding Data.SiteAddress}\" />",
+    "        <Button x:Name=\"MapButton\" Grid.Row=\"1\" HorizontalAlignment=\"Right\"",
+    "                uen:Navigation.Request=\"Map\" Content=\"Map\" />",
+    "        <TextBox x:Name=\"NotesBox\" Grid.Row=\"2\" Header=\"Notes\" AcceptsReturn=\"True\"",
+    "                 Text=\"{Binding Notes, Mode=TwoWay}\" />",
+    "        <ItemsRepeater x:Name=\"PhotoStrip\" Grid.Row=\"3\" ItemsSource=\"{Binding Photos}\">",
+    "          <ItemsRepeater.ItemTemplate>",
+    "            <DataTemplate><controls:PhotoTile Source=\"{Binding Thumbnail}\" /></DataTemplate>",
+    "          </ItemsRepeater.ItemTemplate>",
+    "        </ItemsRepeater>",
+    "        <Button x:Name=\"PhotosButton\" Grid.Row=\"4\" VerticalAlignment=\"Top\"",
+    "                uen:Navigation.Request=\"Photos\" Content=\"{Binding PhotoCount, Converter={StaticResource PhotoLabel}}\" />",
+    "        <Button x:Name=\"SignButton\" Grid.Row=\"4\" HorizontalAlignment=\"Right\" VerticalAlignment=\"Top\"",
+    "                uen:Navigation.Request=\"Signature\" Content=\"Customer signature\" />",
+    "        <Button x:Name=\"CompleteButton\" Grid.Row=\"5\" HorizontalAlignment=\"Stretch\"",
+    "                Style=\"{StaticResource FilledButtonStyle}\"",
+    "                IsEnabled=\"{Binding CanComplete}\"",
+    "                Command=\"{Binding Complete}\">",
+    "          <Grid>",
+    "            <TextBlock Text=\"Complete job\" />",
+    "            <ProgressRing IsActive=\"{Binding IsCompleting}\" />",
+    "          </Grid>",
+    "        </Button>",
+    "      </Grid>",
+    "    </DataTemplate>",
+    "    <mvux:FeedView.ProgressTemplate>",
+    "      <DataTemplate><ProgressRing IsActive=\"True\" /></DataTemplate>",
+    "    </mvux:FeedView.ProgressTemplate>",
+    "    <mvux:FeedView.ErrorTemplate>",
+    "      <DataTemplate><InfoBar Severity=\"Error\" IsOpen=\"True\" Message=\"{Binding LastError}\" /></DataTemplate>",
+    "    </mvux:FeedView.ErrorTemplate>",
+    "  </mvux:FeedView>",
+    "</Page>"
+   ]
+  },
+  {
+   "id": "f.job-vm",
+   "path": "Fieldwork/Presentation/JobModel.cs",
+   "language": "csharp",
+   "startLine": 1,
+   "lines": [
+    "namespace Fieldwork.Presentation;",
+    "",
+    "/// Shared by JobPage and SignaturePage (two features, one model).",
+    "public partial record JobModel(Job Entity, IJobService Jobs, IOutboxStore Outbox, INavigator Navigator)",
+    "{",
+    "    public IFeed<Job> Job => Feed.Async(ct => Jobs.GetAsync(Entity.Id, ct));",
+    "",
+    "    public IState<JobStatus> Status => State.Value(this, () => Entity.Status);",
+    "",
+    "    public IState<string> Notes => State.Value(this, () => Entity.Notes ?? string.Empty);",
+    "",
+    "    public IListFeed<Photo> Photos => ListFeed.Async(ct => Jobs.PhotosAsync(Entity.Id, ct));",
+    "",
+    "    public IFeed<int> PhotoCount => Photos.AsFeed().Select(p => p.Count);",
+    "",
+    "    public IState<byte[]?> Signature => State<byte[]?>.Empty(this);",
+    "",
+    "    public IFeed<bool> HasSignature => Signature.Select(s => s is { Length: > 0 });",
+    "",
+    "    public IState<bool> IsCompleting => State.Value(this, () => false);",
+    "",
+    "    public IState<string?> LastError => State<string?>.Empty(this);",
+    "",
+    "    public IFeed<bool> CanComplete => Feed.Combine(HasSignature, PhotoCount, Status, IsCompleting)",
+    "        .Select(t => t.Item1 && t.Item2 >= 1 && t.Item3 == JobStatus.OnSite && !t.Item4);",
+    "",
+    "    public IFeed<bool> HasUnsyncedChangesSinceLastSuccessfulUpload => Outbox.HasPendingFor(Entity.Id);",
+    "",
+    "    public IFeed<string> EstimatedTravelTimeFromCurrentLocation => Jobs.TravelEstimate(Entity.Id);",
+    "",
+    "    public async ValueTask SaveSignature(byte[] strokes, CancellationToken ct) => await Signature.SetAsync(strokes, ct);",
+    "",
+    "    public async ValueTask ClearSignature(CancellationToken ct) => await Signature.SetAsync(null, ct);",
+    "",
+    "    public async ValueTask Complete(CancellationToken ct)",
+    "    {",
+    "        await IsCompleting.SetAsync(true, ct);",
+    "        try",
+    "        {",
+    "            await Jobs.CompleteAsync(Entity.Id, await Notes, await Signature, ct);",
+    "            await Navigator.NavigateRouteAsync(this, \"Today\", cancellation: ct);",
+    "        }",
+    "        catch (JobException ex)",
+    "        {",
+    "            await LastError.SetAsync(ex.Message, ct);",
+    "        }",
+    "        finally",
+    "        {",
+    "            await IsCompleting.SetAsync(false, ct);",
+    "        }",
+    "    }",
+    "}"
+   ]
+  },
+  {
+   "id": "f.map-xaml",
+   "path": "Fieldwork/Presentation/MapPage.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<Page x:Class=\"Fieldwork.Presentation.MapPage\"",
+    "      xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "      xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"",
+    "      xmlns:uen=\"using:Uno.Extensions.Navigation.UI\"",
+    "      xmlns:mvux=\"using:Uno.Extensions.Reactive.UI\"",
+    "      xmlns:maps=\"using:Fieldwork.Maps\">",
+    "  <Grid RowDefinitions=\"Auto,*\">",
+    "    <TextBlock Text=\"Nearby jobs\" Margin=\"16\" Style=\"{StaticResource TitleLarge}\" />",
+    "    <mvux:FeedView Grid.Row=\"1\" x:Name=\"PinsFeed\" Source=\"{Binding JobPins}\">",
+    "      <DataTemplate>",
+    "        <maps:MapView x:Name=\"JobMap\" Pins=\"{Binding Data}\"",
+    "                      SelectedPin=\"{Binding SelectedJob, Mode=TwoWay}\"",
+    "                      uen:Navigation.Request=\"Job\" />",
+    "      </DataTemplate>",
+    "      <mvux:FeedView.ProgressTemplate>",
+    "        <DataTemplate><ProgressRing IsActive=\"True\" /></DataTemplate>",
+    "      </mvux:FeedView.ProgressTemplate>",
+    "    </mvux:FeedView>",
+    "  </Grid>",
+    "</Page>"
+   ]
+  },
+  {
+   "id": "f.map-vm",
+   "path": "Fieldwork/Presentation/MapModel.cs",
+   "language": "csharp",
+   "startLine": 1,
+   "lines": [
+    "namespace Fieldwork.Presentation;",
+    "",
+    "public partial record MapModel(IJobService Jobs, ILocationService Location)",
+    "{",
+    "    public IListFeed<JobPin> JobPins => ListFeed.Async(ct => Jobs.PinsNearAsync(Location.Current, ct));",
+    "",
+    "    public IState<JobPin?> SelectedJob => State<JobPin?>.Empty(this);",
+    "}"
+   ]
+  },
+  {
+   "id": "f.photos-xaml",
+   "path": "Fieldwork/Presentation/PhotosPage.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<Page x:Class=\"Fieldwork.Presentation.PhotosPage\"",
+    "      xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "      xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"",
+    "      xmlns:mvux=\"using:Uno.Extensions.Reactive.UI\"",
+    "      xmlns:controls=\"using:Fieldwork.Controls\">",
+    "  <Grid RowDefinitions=\"Auto,Auto,*,Auto\" Padding=\"16\" RowSpacing=\"12\">",
+    "    <TextBlock Text=\"Photos\" Style=\"{StaticResource TitleLarge}\" />",
+    "    <InfoBar x:Name=\"CameraWarning\" Grid.Row=\"1\" Severity=\"Warning\"",
+    "             IsOpen=\"{Binding CameraUnavailable}\"",
+    "             Message=\"No camera found. Attach photos from files instead.\" />",
+    "    <mvux:FeedView Grid.Row=\"2\" x:Name=\"PhotosFeed\" Source=\"{Binding Photos}\">",
+    "      <DataTemplate>",
+    "        <GridView x:Name=\"PhotoGrid\" ItemsSource=\"{Binding Data}\">",
+    "          <GridView.ItemTemplate>",
+    "            <DataTemplate><controls:PhotoTile Source=\"{Binding Thumbnail}\" /></DataTemplate>",
+    "          </GridView.ItemTemplate>",
+    "        </GridView>",
+    "      </DataTemplate>",
+    "      <mvux:FeedView.NoneTemplate>",
+    "        <DataTemplate><TextBlock Text=\"No photos yet. Capture at least one before completing.\" /></DataTemplate>",
+    "      </mvux:FeedView.NoneTemplate>",
+    "    </mvux:FeedView>",
+    "    <Button x:Name=\"CaptureButton\" Grid.Row=\"3\" HorizontalAlignment=\"Stretch\"",
+    "            Style=\"{StaticResource FilledButtonStyle}\"",
+    "            IsEnabled=\"{Binding CanCapture}\"",
+    "            Command=\"{Binding Capture}\">",
+    "      <Grid>",
+    "        <TextBlock Text=\"Take photo\" />",
+    "        <ProgressRing IsActive=\"{Binding IsCapturing}\" />",
+    "      </Grid>",
+    "    </Button>",
+    "  </Grid>",
+    "</Page>"
+   ]
+  },
+  {
+   "id": "f.photos-vm",
+   "path": "Fieldwork/Presentation/PhotosModel.cs",
+   "language": "csharp",
+   "startLine": 1,
+   "lines": [
+    "namespace Fieldwork.Presentation;",
+    "",
+    "public partial record PhotosModel(Job Entity, IJobService Jobs, ICameraService Camera)",
+    "{",
+    "    public IListState<Photo> Photos => ListState.Async(this, ct => Jobs.PhotosAsync(Entity.Id, ct));",
+    "",
+    "    public IState<bool> IsCapturing => State.Value(this, () => false);",
+    "",
+    "    public IFeed<bool> CameraUnavailable => Camera.IsAvailable.Select(a => !a);",
+    "",
+    "    public IFeed<bool> CanCapture => Feed.Combine(CameraUnavailable, IsCapturing).Select(t => !t.Item1 && !t.Item2);",
+    "",
+    "    public async ValueTask Capture(CancellationToken ct)",
+    "    {",
+    "        await IsCapturing.SetAsync(true, ct);",
+    "        try { await Photos.AddAsync(await Camera.CaptureAsync(ct), ct); }",
+    "        finally { await IsCapturing.SetAsync(false, ct); }",
+    "    }",
+    "}"
+   ]
+  },
+  {
+   "id": "f.signature-xaml",
+   "path": "Fieldwork/Presentation/SignaturePage.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<Page x:Class=\"Fieldwork.Presentation.SignaturePage\"",
+    "      xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "      xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"",
+    "      xmlns:uen=\"using:Uno.Extensions.Navigation.UI\"",
+    "      xmlns:ink=\"using:Fieldwork.Ink\">",
+    "  <Grid RowDefinitions=\"Auto,*,Auto\" Padding=\"16\" RowSpacing=\"12\">",
+    "    <TextBlock Text=\"Customer signature\" Style=\"{StaticResource TitleLarge}\" />",
+    "    <ink:SignaturePad x:Name=\"Pad\" Grid.Row=\"1\"",
+    "                      Strokes=\"{Binding Signature, Mode=TwoWay}\" />",
+    "    <StackPanel Grid.Row=\"2\" Orientation=\"Horizontal\" Spacing=\"8\" HorizontalAlignment=\"Right\">",
+    "      <Button x:Name=\"ClearButton\" Content=\"Clear\" Command=\"{Binding ClearSignature}\" />",
+    "      <Button x:Name=\"DoneButton\" Content=\"Done\" Style=\"{StaticResource FilledButtonStyle}\"",
+    "              IsEnabled=\"{Binding HasSignature}\"",
+    "              uen:Navigation.Request=\"-\" />",
+    "    </StackPanel>",
+    "  </Grid>",
+    "</Page>"
+   ]
+  },
+  {
+   "id": "f.outbox-xaml",
+   "path": "Fieldwork/Presentation/OutboxPage.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<Page x:Class=\"Fieldwork.Presentation.OutboxPage\"",
+    "      xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "      xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"",
+    "      xmlns:mvux=\"using:Uno.Extensions.Reactive.UI\"",
+    "      xmlns:controls=\"using:Fieldwork.Controls\">",
+    "  <Grid RowDefinitions=\"Auto,Auto,*,Auto\" Padding=\"16\" RowSpacing=\"12\">",
+    "    <TextBlock Text=\"Outbox\" Style=\"{StaticResource TitleLarge}\" />",
+    "    <TextBlock x:Name=\"FailedText\" Grid.Row=\"1\"",
+    "               Text=\"{Binding FailedCount, Converter={StaticResource FailedLabel}}\" />",
+    "    <mvux:FeedView Grid.Row=\"2\" x:Name=\"OutboxFeed\" Source=\"{Binding Items}\">",
+    "      <DataTemplate>",
+    "        <ListView x:Name=\"OutboxList\" ItemsSource=\"{Binding Data}\" SelectionMode=\"None\">",
+    "          <ListView.ItemTemplate>",
+    "            <DataTemplate>",
+    "              <Grid ColumnDefinitions=\"*,Auto\">",
+    "                <TextBlock Text=\"{Binding Title}\" />",
+    "                <controls:StatusChip Grid.Column=\"1\" Status=\"{Binding State}\" />",
+    "              </Grid>",
+    "            </DataTemplate>",
+    "          </ListView.ItemTemplate>",
+    "        </ListView>",
+    "      </DataTemplate>",
+    "      <mvux:FeedView.NoneTemplate>",
+    "        <DataTemplate><TextBlock Text=\"Everything is synced.\" /></DataTemplate>",
+    "      </mvux:FeedView.NoneTemplate>",
+    "    </mvux:FeedView>",
+    "    <Button x:Name=\"SyncNowButton\" Grid.Row=\"3\" HorizontalAlignment=\"Stretch\"",
+    "            Style=\"{StaticResource FilledButtonStyle}\"",
+    "            IsEnabled=\"{Binding CanSync}\"",
+    "            Command=\"{Binding SyncNow}\">",
+    "      <Grid>",
+    "        <TextBlock Text=\"Sync now\" />",
+    "        <ProgressRing IsActive=\"{Binding IsSyncing}\" />",
+    "      </Grid>",
+    "    </Button>",
+    "  </Grid>",
+    "</Page>"
+   ]
+  },
+  {
+   "id": "f.outbox-vm",
+   "path": "Fieldwork/Presentation/OutboxModel.cs",
+   "language": "csharp",
+   "startLine": 1,
+   "lines": [
+    "namespace Fieldwork.Presentation;",
+    "",
+    "public partial record OutboxModel(IOutboxStore Outbox, ISyncService Sync, IConnectivity Network)",
+    "{",
+    "    public IListFeed<OutboxItem> Items => Outbox.Pending.AsListFeed();",
+    "",
+    "    public IFeed<int> FailedCount => Outbox.Pending.Select(p => p.Count(i => i.State == SyncState.Failed));",
+    "",
+    "    public IState<bool> IsSyncing => State.Value(this, () => false);",
+    "",
+    "    public IFeed<bool> CanSync => Feed.Combine(Network.IsOffline, IsSyncing).Select(t => !t.Item1 && !t.Item2);",
+    "",
+    "    public async ValueTask SyncNow(CancellationToken ct)",
+    "    {",
+    "        await IsSyncing.SetAsync(true, ct);",
+    "        try { await Sync.PushAsync(ct); }",
+    "        finally { await IsSyncing.SetAsync(false, ct); }",
+    "    }",
+    "}"
+   ]
+  },
+  {
+   "id": "f.profile-xaml",
+   "path": "Fieldwork/Presentation/ProfilePage.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<Page x:Class=\"Fieldwork.Presentation.ProfilePage\"",
+    "      xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "      xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\"",
+    "      xmlns:uen=\"using:Uno.Extensions.Navigation.UI\">",
+    "  <StackPanel Padding=\"16\" Spacing=\"12\">",
+    "    <TextBlock x:Name=\"NameText\" Text=\"{Binding DisplayName}\" Style=\"{StaticResource TitleLarge}\" />",
+    "    <TextBlock x:Name=\"RegionText\" Text=\"{Binding Region}\" />",
+    "    <Button x:Name=\"SettingsButton\" Content=\"Settings\" uen:Navigation.Request=\"Settings\" />",
+    "    <Button x:Name=\"SignOutButton\" Content=\"Sign out\" Command=\"{Binding SignOut}\" />",
+    "  </StackPanel>",
+    "</Page>"
+   ]
+  },
+  {
+   "id": "f.profile-vm",
+   "path": "Fieldwork/Presentation/ProfileModel.cs",
+   "language": "csharp",
+   "startLine": 1,
+   "lines": [
+    "namespace Fieldwork.Presentation;",
+    "",
+    "public partial record ProfileModel(ITechnicianService Technicians, IAuthenticationService Auth)",
+    "{",
+    "    public IFeed<string> DisplayName => Technicians.Current.Select(t => t.DisplayName);",
+    "",
+    "    public IFeed<string> Region => Technicians.Current.Select(t => t.Region);",
+    "",
+    "    public async ValueTask SignOut(CancellationToken ct) => await Auth.LogoutAsync(ct);",
+    "}"
+   ]
+  },
+  {
+   "id": "f.settings-xaml",
+   "path": "Fieldwork/Presentation/SettingsPage.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<Page x:Class=\"Fieldwork.Presentation.SettingsPage\"",
+    "      xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "      xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">",
+    "  <StackPanel Padding=\"16\" Spacing=\"12\">",
+    "    <TextBlock Text=\"Settings\" Style=\"{StaticResource TitleLarge}\" />",
+    "    <ToggleSwitch x:Name=\"WifiOnlyToggle\" Header=\"Upload photos on Wi-Fi only\"",
+    "                  IsOn=\"{Binding UploadOnWifiOnly, Mode=TwoWay}\" />",
+    "    <ComboBox x:Name=\"MapStyleBox\" Header=\"Map style\"",
+    "              ItemsSource=\"{Binding MapStyles}\" SelectedItem=\"{Binding MapStyle, Mode=TwoWay}\" />",
+    "  </StackPanel>",
+    "</Page>"
+   ]
+  },
+  {
+   "id": "f.settings-vm",
+   "path": "Fieldwork/Presentation/SettingsModel.cs",
+   "language": "csharp",
+   "startLine": 1,
+   "lines": [
+    "namespace Fieldwork.Presentation;",
+    "",
+    "public partial record SettingsModel(IWritableOptions<FieldworkSettings> Options)",
+    "{",
+    "    public IState<bool> UploadOnWifiOnly => State.Value(this, () => Options.Value.UploadOnWifiOnly);",
+    "",
+    "    public IListFeed<string> MapStyles => ListFeed.Async(_ => ValueTask.FromResult<IImmutableList<string>>([\"Streets\", \"Satellite\"]));",
+    "",
+    "    public IState<string> MapStyle => State.Value(this, () => Options.Value.MapStyle);",
+    "}"
+   ]
+  },
+  {
+   "id": "f.status-chip",
+   "path": "Fieldwork/Controls/StatusChip.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<UserControl x:Class=\"Fieldwork.Controls.StatusChip\"",
+    "             xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "             xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">",
+    "  <Border CornerRadius=\"10\" Padding=\"8,2\" Background=\"{x:Bind Status, Converter={StaticResource StatusBrush}, Mode=OneWay}\">",
+    "    <TextBlock Text=\"{x:Bind Status, Mode=OneWay}\" Style=\"{StaticResource LabelSmall}\" />",
+    "  </Border>",
+    "</UserControl>"
+   ]
+  },
+  {
+   "id": "f.photo-tile",
+   "path": "Fieldwork/Controls/PhotoTile.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<UserControl x:Class=\"Fieldwork.Controls.PhotoTile\"",
+    "             xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "             xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">",
+    "  <Grid Width=\"96\" Height=\"96\" CornerRadius=\"8\">",
+    "    <Image Source=\"{x:Bind Source, Mode=OneWay}\" Stretch=\"UniformToFill\" />",
+    "    <FontIcon x:Name=\"PendingIcon\" Glyph=\"&#xE898;\" Visibility=\"{x:Bind IsPending, Mode=OneWay}\" />",
+    "  </Grid>",
+    "</UserControl>"
+   ]
+  },
+  {
+   "id": "f.legacy-banner",
+   "path": "Fieldwork/Controls/LegacyBanner.xaml",
+   "language": "xaml",
+   "startLine": 1,
+   "lines": [
+    "<UserControl x:Class=\"Fieldwork.Controls.LegacyBanner\"",
+    "             xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\"",
+    "             xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\">",
+    "  <!-- Kept for the 1.x migration notice. No page references it since 2.0. -->",
+    "  <InfoBar Severity=\"Informational\" IsOpen=\"True\" Message=\"Fieldwork has moved to the new sync engine.\" />",
+    "</UserControl>"
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "id": "feature.jobs",
+   "type": "feature",
+   "name": "Jobs",
+   "summary": "See today's work, open a job, find it on the map.",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "rationale": "Today, Job and Map share the Job data map and navigate among themselves."
+   }
+  },
+  {
+   "id": "feature.capture",
+   "type": "feature",
+   "name": "Capture",
+   "summary": "Collect proof of work: photos and the customer's signature.",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.85,
+    "rationale": "Photos and Signature are reached only from Job and both write evidence for completion."
+   }
+  },
+  {
+   "id": "feature.sync",
+   "type": "feature",
+   "name": "Sync",
+   "summary": "Work that is waiting to upload.",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "rationale": "OutboxPage is the only page bound to the sync service."
+   }
+  },
+  {
+   "id": "feature.account",
+   "type": "feature",
+   "name": "Account",
+   "summary": "Who is signed in, and device preferences.",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.8,
+    "rationale": "Profile and Settings are reached from the avatar and touch no job data."
+   }
+  },
+  {
+   "id": "vm.today",
+   "type": "viewmodel",
+   "name": "TodayViewModel",
+   "summary": "Generated from TodayModel (MVUX).",
+   "source": {
+    "file": "f.today-vm",
+    "line": 3
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 3
+    }
+   },
+   "properties": {
+    "uno": {
+     "pattern": "MVUX",
+     "model": "TodayModel"
+    }
+   }
+  },
+  {
+   "id": "prop.today.jobs",
+   "type": "property",
+   "name": "Jobs",
+   "source": {
+    "file": "f.today-vm",
+    "line": 5
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 5
+    }
+   },
+   "properties": {
+    "clrType": "IListFeed<JobSummary>"
+   }
+  },
+  {
+   "id": "prop.today.is-offline",
+   "type": "property",
+   "name": "IsOffline",
+   "source": {
+    "file": "f.today-vm",
+    "line": 7
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 7
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<bool>",
+    "expression": "Network.IsOffline"
+   }
+  },
+  {
+   "id": "prop.today.last-synced-label",
+   "type": "property",
+   "name": "LastSyncedLabel",
+   "source": {
+    "file": "f.today-vm",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 9
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<string>"
+   }
+  },
+  {
+   "id": "prop.today.pending-uploads",
+   "type": "property",
+   "name": "PendingUploads",
+   "source": {
+    "file": "f.today-vm",
+    "line": 11
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 11
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<int>",
+    "expression": "Outbox.Pending.Select(p => p.Count)"
+   }
+  },
+  {
+   "id": "cmd.today.refresh",
+   "type": "command",
+   "name": "Refresh",
+   "source": {
+    "file": "f.today-vm",
+    "line": 13
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 13
+    }
+   },
+   "properties": {
+    "clrType": "ICommand (generated)",
+    "async": true
+   }
+  },
+  {
+   "id": "vm.job",
+   "type": "viewmodel",
+   "name": "JobViewModel",
+   "summary": "Generated from JobModel (MVUX). Serves Job and Signature, across two features.",
+   "source": {
+    "file": "f.job-vm",
+    "line": 4
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 4
+    }
+   },
+   "properties": {
+    "uno": {
+     "pattern": "MVUX",
+     "model": "JobModel"
+    }
+   }
+  },
+  {
+   "id": "prop.job.job",
+   "type": "property",
+   "name": "Job",
+   "source": {
+    "file": "f.job-vm",
+    "line": 6
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 6
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<Job>"
+   }
+  },
+  {
+   "id": "prop.job.status",
+   "type": "property",
+   "name": "Status",
+   "source": {
+    "file": "f.job-vm",
+    "line": 8
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 8
+    }
+   },
+   "properties": {
+    "clrType": "IState<JobStatus>",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.job.notes",
+   "type": "property",
+   "name": "Notes",
+   "source": {
+    "file": "f.job-vm",
+    "line": 10
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 10
+    }
+   },
+   "properties": {
+    "clrType": "IState<string>",
+    "default": "\"\"",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.job.photos",
+   "type": "property",
+   "name": "Photos",
+   "source": {
+    "file": "f.job-vm",
+    "line": 12
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 12
+    }
+   },
+   "properties": {
+    "clrType": "IListFeed<Photo>"
+   }
+  },
+  {
+   "id": "prop.job.photo-count",
+   "type": "property",
+   "name": "PhotoCount",
+   "source": {
+    "file": "f.job-vm",
+    "line": 14
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 14
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<int>",
+    "expression": "Photos.AsFeed().Select(p => p.Count)"
+   }
+  },
+  {
+   "id": "prop.job.signature",
+   "type": "property",
+   "name": "Signature",
+   "source": {
+    "file": "f.job-vm",
+    "line": 16
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 16
+    }
+   },
+   "properties": {
+    "clrType": "IState<byte[]?>",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.job.has-signature",
+   "type": "property",
+   "name": "HasSignature",
+   "source": {
+    "file": "f.job-vm",
+    "line": 18
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 18
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<bool>",
+    "expression": "Signature.Select(s => s is { Length: > 0 })"
+   }
+  },
+  {
+   "id": "prop.job.is-completing",
+   "type": "property",
+   "name": "IsCompleting",
+   "source": {
+    "file": "f.job-vm",
+    "line": 20
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 20
+    }
+   },
+   "properties": {
+    "clrType": "IState<bool>",
+    "default": "false",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.job.last-error",
+   "type": "property",
+   "name": "LastError",
+   "source": {
+    "file": "f.job-vm",
+    "line": 22
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 22
+    }
+   },
+   "properties": {
+    "clrType": "IState<string?>",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.job.can-complete",
+   "type": "property",
+   "name": "CanComplete",
+   "summary": "True when there is a signature, at least one photo, the job is on site, and nothing is completing.",
+   "source": {
+    "file": "f.job-vm",
+    "line": 24,
+    "endLine": 25
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<bool>",
+    "expression": "Feed.Combine(HasSignature, PhotoCount, Status, IsCompleting).Select(t => t.Item1 && t.Item2 >= 1 && t.Item3 == JobStatus.OnSite && !t.Item4)"
+   }
+  },
+  {
+   "id": "prop.job.has-unsynced-changes-since-last-successful-upload",
+   "type": "property",
+   "name": "HasUnsyncedChangesSinceLastSuccessfulUpload",
+   "source": {
+    "file": "f.job-vm",
+    "line": 27
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 27
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<bool>",
+    "expression": "Outbox.HasPendingFor(Entity.Id)"
+   }
+  },
+  {
+   "id": "prop.job.estimated-travel-time-from-current-location",
+   "type": "property",
+   "name": "EstimatedTravelTimeFromCurrentLocation",
+   "source": {
+    "file": "f.job-vm",
+    "line": 29
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 29
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<string>"
+   }
+  },
+  {
+   "id": "cmd.job.save-signature",
+   "type": "command",
+   "name": "SaveSignature",
+   "source": {
+    "file": "f.job-vm",
+    "line": 31
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 31
+    }
+   },
+   "properties": {
+    "clrType": "ICommand (generated)",
+    "async": true
+   }
+  },
+  {
+   "id": "cmd.job.clear-signature",
+   "type": "command",
+   "name": "ClearSignature",
+   "source": {
+    "file": "f.job-vm",
+    "line": 33
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 33
+    }
+   },
+   "properties": {
+    "clrType": "ICommand (generated)",
+    "async": true
+   }
+  },
+  {
+   "id": "cmd.job.complete",
+   "type": "command",
+   "name": "Complete",
+   "summary": "Uploads notes and signature, then returns to Today. On JobException, sets LastError.",
+   "source": {
+    "file": "f.job-vm",
+    "line": 35,
+    "endLine": 49
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 35
+    }
+   },
+   "properties": {
+    "clrType": "ICommand (generated)",
+    "async": true
+   }
+  },
+  {
+   "id": "vm.map",
+   "type": "viewmodel",
+   "name": "MapViewModel",
+   "summary": "Generated from MapModel (MVUX).",
+   "source": {
+    "file": "f.map-vm",
+    "line": 3
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-vm",
+     "line": 3
+    }
+   },
+   "properties": {
+    "uno": {
+     "pattern": "MVUX",
+     "model": "MapModel"
+    }
+   }
+  },
+  {
+   "id": "prop.map.job-pins",
+   "type": "property",
+   "name": "JobPins",
+   "source": {
+    "file": "f.map-vm",
+    "line": 5
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-vm",
+     "line": 5
+    }
+   },
+   "properties": {
+    "clrType": "IListFeed<JobPin>"
+   }
+  },
+  {
+   "id": "prop.map.selected-job",
+   "type": "property",
+   "name": "SelectedJob",
+   "source": {
+    "file": "f.map-vm",
+    "line": 7
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-vm",
+     "line": 7
+    }
+   },
+   "properties": {
+    "clrType": "IState<JobPin?>",
+    "writable": true
+   }
+  },
+  {
+   "id": "vm.photos",
+   "type": "viewmodel",
+   "name": "PhotosViewModel",
+   "summary": "Generated from PhotosModel (MVUX).",
+   "source": {
+    "file": "f.photos-vm",
+    "line": 3
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 3
+    }
+   },
+   "properties": {
+    "uno": {
+     "pattern": "MVUX",
+     "model": "PhotosModel"
+    }
+   }
+  },
+  {
+   "id": "prop.photos.photos",
+   "type": "property",
+   "name": "Photos",
+   "source": {
+    "file": "f.photos-vm",
+    "line": 5
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 5
+    }
+   },
+   "properties": {
+    "clrType": "IListState<Photo>",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.photos.is-capturing",
+   "type": "property",
+   "name": "IsCapturing",
+   "source": {
+    "file": "f.photos-vm",
+    "line": 7
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 7
+    }
+   },
+   "properties": {
+    "clrType": "IState<bool>",
+    "default": "false",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.photos.camera-unavailable",
+   "type": "property",
+   "name": "CameraUnavailable",
+   "source": {
+    "file": "f.photos-vm",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 9
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<bool>",
+    "expression": "Camera.IsAvailable.Select(a => !a)"
+   }
+  },
+  {
+   "id": "prop.photos.can-capture",
+   "type": "property",
+   "name": "CanCapture",
+   "source": {
+    "file": "f.photos-vm",
+    "line": 11
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 11
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<bool>",
+    "expression": "Feed.Combine(CameraUnavailable, IsCapturing).Select(t => !t.Item1 && !t.Item2)"
+   }
+  },
+  {
+   "id": "cmd.photos.capture",
+   "type": "command",
+   "name": "Capture",
+   "source": {
+    "file": "f.photos-vm",
+    "line": 13,
+    "endLine": 17
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 13
+    }
+   },
+   "properties": {
+    "clrType": "ICommand (generated)",
+    "async": true
+   }
+  },
+  {
+   "id": "vm.outbox",
+   "type": "viewmodel",
+   "name": "OutboxViewModel",
+   "summary": "Generated from OutboxModel (MVUX).",
+   "source": {
+    "file": "f.outbox-vm",
+    "line": 3
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 3
+    }
+   },
+   "properties": {
+    "uno": {
+     "pattern": "MVUX",
+     "model": "OutboxModel"
+    }
+   }
+  },
+  {
+   "id": "prop.outbox.items",
+   "type": "property",
+   "name": "Items",
+   "source": {
+    "file": "f.outbox-vm",
+    "line": 5
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 5
+    }
+   },
+   "properties": {
+    "clrType": "IListFeed<OutboxItem>"
+   }
+  },
+  {
+   "id": "prop.outbox.failed-count",
+   "type": "property",
+   "name": "FailedCount",
+   "source": {
+    "file": "f.outbox-vm",
+    "line": 7
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 7
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<int>"
+   }
+  },
+  {
+   "id": "prop.outbox.is-syncing",
+   "type": "property",
+   "name": "IsSyncing",
+   "source": {
+    "file": "f.outbox-vm",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 9
+    }
+   },
+   "properties": {
+    "clrType": "IState<bool>",
+    "default": "false",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.outbox.can-sync",
+   "type": "property",
+   "name": "CanSync",
+   "source": {
+    "file": "f.outbox-vm",
+    "line": 11
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 11
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<bool>",
+    "expression": "Feed.Combine(Network.IsOffline, IsSyncing).Select(t => !t.Item1 && !t.Item2)"
+   }
+  },
+  {
+   "id": "cmd.outbox.sync-now",
+   "type": "command",
+   "name": "SyncNow",
+   "source": {
+    "file": "f.outbox-vm",
+    "line": 13,
+    "endLine": 17
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 13
+    }
+   },
+   "properties": {
+    "clrType": "ICommand (generated)",
+    "async": true
+   }
+  },
+  {
+   "id": "vm.profile",
+   "type": "viewmodel",
+   "name": "ProfileViewModel",
+   "summary": "Generated from ProfileModel (MVUX).",
+   "source": {
+    "file": "f.profile-vm",
+    "line": 3
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-vm",
+     "line": 3
+    }
+   },
+   "properties": {
+    "uno": {
+     "pattern": "MVUX",
+     "model": "ProfileModel"
+    }
+   }
+  },
+  {
+   "id": "prop.profile.display-name",
+   "type": "property",
+   "name": "DisplayName",
+   "source": {
+    "file": "f.profile-vm",
+    "line": 5
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-vm",
+     "line": 5
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<string>"
+   }
+  },
+  {
+   "id": "prop.profile.region",
+   "type": "property",
+   "name": "Region",
+   "source": {
+    "file": "f.profile-vm",
+    "line": 7
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-vm",
+     "line": 7
+    }
+   },
+   "properties": {
+    "clrType": "IFeed<string>"
+   }
+  },
+  {
+   "id": "cmd.profile.sign-out",
+   "type": "command",
+   "name": "SignOut",
+   "source": {
+    "file": "f.profile-vm",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-vm",
+     "line": 9
+    }
+   },
+   "properties": {
+    "clrType": "ICommand (generated)",
+    "async": true
+   }
+  },
+  {
+   "id": "vm.settings",
+   "type": "viewmodel",
+   "name": "SettingsViewModel",
+   "summary": "Generated from SettingsModel (MVUX).",
+   "source": {
+    "file": "f.settings-vm",
+    "line": 3
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-vm",
+     "line": 3
+    }
+   },
+   "properties": {
+    "uno": {
+     "pattern": "MVUX",
+     "model": "SettingsModel"
+    }
+   }
+  },
+  {
+   "id": "prop.settings.upload-on-wifi-only",
+   "type": "property",
+   "name": "UploadOnWifiOnly",
+   "source": {
+    "file": "f.settings-vm",
+    "line": 5
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-vm",
+     "line": 5
+    }
+   },
+   "properties": {
+    "clrType": "IState<bool>",
+    "writable": true
+   }
+  },
+  {
+   "id": "prop.settings.map-styles",
+   "type": "property",
+   "name": "MapStyles",
+   "source": {
+    "file": "f.settings-vm",
+    "line": 7
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-vm",
+     "line": 7
+    }
+   },
+   "properties": {
+    "clrType": "IListFeed<string>"
+   }
+  },
+  {
+   "id": "prop.settings.map-style",
+   "type": "property",
+   "name": "MapStyle",
+   "source": {
+    "file": "f.settings-vm",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-vm",
+     "line": 9
+    }
+   },
+   "properties": {
+    "clrType": "IState<string>",
+    "writable": true
+   }
+  },
+  {
+   "id": "component.status-chip",
+   "type": "component",
+   "name": "StatusChip",
+   "summary": "Coloured pill for a job or upload status.",
+   "source": {
+    "file": "f.status-chip",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.status-chip",
+     "line": 1
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "UserControl",
+     "class": "Fieldwork.Controls.StatusChip"
+    },
+    "parts": [
+     "background",
+     "label"
+    ],
+    "dependencyProperties": [
+     "Status"
+    ]
+   }
+  },
+  {
+   "id": "component.photo-tile",
+   "type": "component",
+   "name": "PhotoTile",
+   "summary": "Square thumbnail with a pending-upload marker.",
+   "source": {
+    "file": "f.photo-tile",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photo-tile",
+     "line": 1
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "UserControl",
+     "class": "Fieldwork.Controls.PhotoTile"
+    },
+    "parts": [
+     "image",
+     "pending icon"
+    ],
+    "dependencyProperties": [
+     "Source",
+     "IsPending"
+    ]
+   }
+  },
+  {
+   "id": "component.legacy-banner",
+   "type": "component",
+   "name": "LegacyBanner",
+   "summary": "Migration notice from 1.x. Declared, but no page uses it.",
+   "source": {
+    "file": "f.legacy-banner",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.legacy-banner",
+     "line": 1
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "UserControl",
+     "class": "Fieldwork.Controls.LegacyBanner"
+    },
+    "parts": [
+     "info bar"
+    ]
+   }
+  },
+  {
+   "id": "screen.today",
+   "type": "screen",
+   "name": "Today",
+   "summary": "Entry screen. Today's jobs, offline banner, uploads waiting.",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 70
+    },
+    "rationale": "Route \"Today\" is the default route."
+   },
+   "properties": {
+    "route": "Today",
+    "uno": {
+     "type": "Page",
+     "class": "Fieldwork.Presentation.TodayPage"
+    },
+    "isEntry": true
+   },
+   "preview": {
+    "parts": [
+     {
+      "kind": "badge",
+      "rect": {
+       "x": 0.07,
+       "y": 0.04,
+       "w": 0.12,
+       "h": 0.065
+      },
+      "label": "MK"
+     },
+     {
+      "kind": "heading",
+      "rect": {
+       "x": 0.22,
+       "y": 0.045,
+       "w": 0.4,
+       "h": 0.06
+      },
+      "label": "Today"
+     },
+     {
+      "kind": "badge",
+      "rect": {
+       "x": 0.66,
+       "y": 0.04,
+       "w": 0.27,
+       "h": 0.065
+      },
+      "label": "3 to upload"
+     },
+     {
+      "kind": "alert",
+      "rect": {
+       "x": 0.07,
+       "y": 0.13,
+       "w": 0.86,
+       "h": 0.075
+      },
+      "label": "Offline. Last synced 08:42."
+     },
+     {
+      "kind": "list",
+      "rect": {
+       "x": 0.07,
+       "y": 0.235,
+       "w": 0.86,
+       "h": 0.72
+      },
+      "rows": 5,
+      "items": [
+       "Hartley Dental · On site",
+       "Rue Saint-Denis 4412 · Travelling",
+       "Mapleview Clinic · Scheduled",
+       "Bergeron & Fils, entrepôt nord · Scheduled",
+       "Westmount Library · Done"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "inst.today.avatar",
+   "type": "component-instance",
+   "name": "Avatar button",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 8,
+    "endLine": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 8
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "xName": "AvatarButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.04,
+     "w": 0.12,
+     "h": 0.065
+    }
+   }
+  },
+  {
+   "id": "inst.today.outbox-button",
+   "type": "component-instance",
+   "name": "Outbox button",
+   "summary": "Shows how many items are waiting to upload.",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 11,
+    "endLine": 13
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 11
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "xName": "OutboxButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.66,
+     "y": 0.04,
+     "w": 0.27,
+     "h": 0.065
+    }
+   }
+  },
+  {
+   "id": "inst.today.offline-banner",
+   "type": "component-instance",
+   "name": "Offline banner",
+   "summary": "Collapsed while online.",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 14,
+    "endLine": 16
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 14
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "InfoBar",
+     "xName": "OfflineBanner"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.13,
+     "w": 0.86,
+     "h": 0.075
+    }
+   }
+  },
+  {
+   "id": "inst.today.jobs-feed",
+   "type": "component-instance",
+   "name": "Jobs feed",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 17,
+    "endLine": 41
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 17
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "FeedView",
+     "xName": "JobsFeed"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.235,
+     "w": 0.86,
+     "h": 0.72
+    }
+   }
+  },
+  {
+   "id": "inst.today.job-list",
+   "type": "component-instance",
+   "name": "Job list",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 20,
+    "endLine": 30
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 20
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "ListView",
+     "xName": "JobList"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.08,
+     "y": 0.245,
+     "w": 0.84,
+     "h": 0.7
+    }
+   }
+  },
+  {
+   "id": "inst.today.status-chip",
+   "type": "component-instance",
+   "name": "StatusChip (Today)",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 26
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 26
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "StatusChip"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.68,
+     "y": 0.258,
+     "w": 0.22,
+     "h": 0.05
+    }
+   }
+  },
+  {
+   "id": "state.today.loading",
+   "type": "state",
+   "name": "Loading",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 32,
+    "endLine": 34
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 32
+    },
+    "rationale": "FeedView.ProgressTemplate"
+   },
+   "properties": {
+    "trigger": "Jobs feed is loading",
+    "uno": {
+     "mechanism": "FeedView.ProgressTemplate"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "spinner",
+      "rect": {
+       "x": 0.07,
+       "y": 0.235,
+       "w": 0.86,
+       "h": 0.72
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.today.empty",
+   "type": "state",
+   "name": "Empty",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 35,
+    "endLine": 37
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 35
+    },
+    "rationale": "FeedView.NoneTemplate"
+   },
+   "properties": {
+    "trigger": "Jobs feed has no items",
+    "uno": {
+     "mechanism": "FeedView.NoneTemplate"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "empty",
+      "rect": {
+       "x": 0.07,
+       "y": 0.235,
+       "w": 0.86,
+       "h": 0.72
+      },
+      "label": "No jobs today. Enjoy the quiet."
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.today.error",
+   "type": "state",
+   "name": "Error",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 38,
+    "endLine": 40
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 38
+    },
+    "rationale": "FeedView.ErrorTemplate"
+   },
+   "properties": {
+    "trigger": "Jobs feed failed",
+    "uno": {
+     "mechanism": "FeedView.ErrorTemplate"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "alert",
+      "rect": {
+       "x": 0.07,
+       "y": 0.235,
+       "w": 0.86,
+       "h": 0.09
+      },
+      "label": "Couldn't load today's jobs"
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.today.populated",
+   "type": "state",
+   "name": "Populated",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 20
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 20
+    },
+    "rationale": "The FeedView's data template."
+   },
+   "properties": {
+    "trigger": "Jobs feed has items",
+    "uno": {
+     "mechanism": "FeedView data template"
+    }
+   },
+   "preview": {
+    "overrides": []
+   }
+  },
+  {
+   "id": "state.today.offline",
+   "type": "state",
+   "name": "Offline",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 15
+   },
+   "evidence": {
+    "kind": "observed",
+    "confidence": 0.8,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 15
+    },
+    "rationale": "Seen in a recorded session with the network disabled; the banner opened within a second."
+   },
+   "properties": {
+    "trigger": "IsOffline == true",
+    "uno": {
+     "member": "IsOffline"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "alert",
+      "rect": {
+       "x": 0.07,
+       "y": 0.13,
+       "w": 0.86,
+       "h": 0.075
+      },
+      "label": "Offline. Last synced 08:42."
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.today.refreshing",
+   "type": "state",
+   "name": "Refreshing",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 18
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.85,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 18
+    },
+    "rationale": "FeedView shows its refresh indicator while RefreshCommand runs."
+   },
+   "properties": {
+    "trigger": "Refresh is running",
+    "uno": {
+     "member": "Refresh"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "bar",
+      "rect": {
+       "x": 0.07,
+       "y": 0.215,
+       "w": 0.86,
+       "h": 0.012
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "screen.job",
+   "type": "screen",
+   "name": "Job",
+   "summary": "One job: customer, site, notes, photos, signature, complete.",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 71
+    }
+   },
+   "properties": {
+    "route": "Job",
+    "uno": {
+     "type": "Page",
+     "class": "Fieldwork.Presentation.JobPage"
+    }
+   },
+   "preview": {
+    "parts": [
+     {
+      "kind": "heading",
+      "rect": {
+       "x": 0.07,
+       "y": 0.045,
+       "w": 0.6,
+       "h": 0.06
+      },
+      "label": "Hartley Dental"
+     },
+     {
+      "kind": "badge",
+      "rect": {
+       "x": 0.7,
+       "y": 0.045,
+       "w": 0.23,
+       "h": 0.055
+      },
+      "label": "On site"
+     },
+     {
+      "kind": "text",
+      "rect": {
+       "x": 0.07,
+       "y": 0.125,
+       "w": 0.6,
+       "h": 0.05
+      },
+      "label": "1180 Greene Ave, Westmount"
+     },
+     {
+      "kind": "badge",
+      "rect": {
+       "x": 0.07,
+       "y": 0.178,
+       "w": 0.3,
+       "h": 0.028
+      },
+      "label": "Not synced"
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.74,
+       "y": 0.12,
+       "w": 0.19,
+       "h": 0.06
+      },
+      "label": "Map",
+      "emphasis": "secondary"
+     },
+     {
+      "kind": "input",
+      "rect": {
+       "x": 0.07,
+       "y": 0.21,
+       "w": 0.86,
+       "h": 0.16
+      },
+      "label": "Notes"
+     },
+     {
+      "kind": "image",
+      "rect": {
+       "x": 0.07,
+       "y": 0.4,
+       "w": 0.86,
+       "h": 0.14
+      }
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.57,
+       "w": 0.4,
+       "h": 0.065
+      },
+      "label": "2 photos",
+      "emphasis": "secondary"
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.53,
+       "y": 0.57,
+       "w": 0.4,
+       "h": 0.065
+      },
+      "label": "Customer signature",
+      "emphasis": "secondary"
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.86,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Complete job",
+      "emphasis": "primary"
+     }
+    ]
+   }
+  },
+  {
+   "id": "inst.job.job-feed",
+   "type": "component-instance",
+   "name": "Job feed",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 7,
+    "endLine": 46
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 7
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "FeedView",
+     "xName": "JobFeed"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.02,
+     "y": 0.02,
+     "w": 0.96,
+     "h": 0.96
+    }
+   }
+  },
+  {
+   "id": "inst.job.customer",
+   "type": "component-instance",
+   "name": "Customer name",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 10
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 10
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "TextBlock",
+     "xName": "CustomerText"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.045,
+     "w": 0.6,
+     "h": 0.06
+    }
+   }
+  },
+  {
+   "id": "inst.job.status-chip",
+   "type": "component-instance",
+   "name": "StatusChip (Job)",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 11,
+    "endLine": 12
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 11
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "StatusChip",
+     "xName": "StatusHeader"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.7,
+     "y": 0.045,
+     "w": 0.23,
+     "h": 0.055
+    }
+   }
+  },
+  {
+   "id": "inst.job.sync-chip",
+   "type": "component-instance",
+   "name": "StatusChip (sync)",
+   "summary": "A second StatusChip on the same page, for upload state.",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 13,
+    "endLine": 14
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 13
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "StatusChip",
+     "xName": "SyncChip"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.178,
+     "w": 0.3,
+     "h": 0.028
+    }
+   }
+  },
+  {
+   "id": "inst.job.address",
+   "type": "component-instance",
+   "name": "Site address",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 15
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 15
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "TextBlock",
+     "xName": "AddressText"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.125,
+     "w": 0.6,
+     "h": 0.05
+    }
+   }
+  },
+  {
+   "id": "inst.job.map-button",
+   "type": "component-instance",
+   "name": "Map button",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 16,
+    "endLine": 17
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 16
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "xName": "MapButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.74,
+     "y": 0.12,
+     "w": 0.19,
+     "h": 0.06
+    }
+   }
+  },
+  {
+   "id": "inst.job.notes",
+   "type": "component-instance",
+   "name": "Notes box",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 18,
+    "endLine": 19
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 18
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "TextBox",
+     "xName": "NotesBox"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.21,
+     "w": 0.86,
+     "h": 0.16
+    }
+   }
+  },
+  {
+   "id": "inst.job.photo-strip",
+   "type": "component-instance",
+   "name": "Photo strip",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 20,
+    "endLine": 24
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 20
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "ItemsRepeater",
+     "xName": "PhotoStrip"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.4,
+     "w": 0.86,
+     "h": 0.14
+    }
+   }
+  },
+  {
+   "id": "inst.job.photo-tile",
+   "type": "component-instance",
+   "name": "PhotoTile (Job)",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 22
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 22
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "PhotoTile"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.08,
+     "y": 0.41,
+     "w": 0.2,
+     "h": 0.12
+    }
+   }
+  },
+  {
+   "id": "inst.job.photos-button",
+   "type": "component-instance",
+   "name": "Photos button",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 25,
+    "endLine": 26
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 25
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "xName": "PhotosButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.57,
+     "w": 0.4,
+     "h": 0.065
+    }
+   }
+  },
+  {
+   "id": "inst.job.sign-button",
+   "type": "component-instance",
+   "name": "Signature button",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 27,
+    "endLine": 28
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 27
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "xName": "SignButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.53,
+     "y": 0.57,
+     "w": 0.4,
+     "h": 0.065
+    }
+   }
+  },
+  {
+   "id": "inst.job.complete",
+   "type": "component-instance",
+   "name": "Complete job",
+   "summary": "Primary action. Disabled until CanComplete is true.",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 29,
+    "endLine": 37
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 29
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "styleKey": "FilledButtonStyle",
+     "xName": "CompleteButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.86,
+     "w": 0.86,
+     "h": 0.08
+    }
+   }
+  },
+  {
+   "id": "state.job.loading",
+   "type": "state",
+   "name": "Loading",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 40,
+    "endLine": 42
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 40
+    },
+    "rationale": "FeedView.ProgressTemplate"
+   },
+   "properties": {
+    "trigger": "Job feed is loading",
+    "uno": {
+     "mechanism": "FeedView.ProgressTemplate"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "spinner",
+      "rect": {
+       "x": 0.07,
+       "y": 0.12,
+       "w": 0.86,
+       "h": 0.82
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.job.ready",
+   "type": "state",
+   "name": "Ready",
+   "source": {
+    "file": "f.job-vm",
+    "line": 24
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    },
+    "rationale": "Signature present, one photo or more, status OnSite."
+   },
+   "properties": {
+    "trigger": "CanComplete == true",
+    "uno": {
+     "member": "CanComplete"
+    }
+   },
+   "preview": {
+    "overrides": []
+   }
+  },
+  {
+   "id": "state.job.completing",
+   "type": "state",
+   "name": "Completing",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 35
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 35
+    },
+    "rationale": "ProgressRing.IsActive bound to IsCompleting; CanComplete is false while completing."
+   },
+   "properties": {
+    "trigger": "IsCompleting == true",
+    "uno": {
+     "member": "IsCompleting"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.86,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Complete job  ◌",
+      "emphasis": "disabled"
+     }
+    ],
+    "dim": [
+     "inst.job.notes"
+    ]
+   }
+  },
+  {
+   "id": "state.job.error",
+   "type": "state",
+   "name": "Error",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 43,
+    "endLine": 45
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 43
+    },
+    "rationale": "FeedView.ErrorTemplate shows LastError."
+   },
+   "properties": {
+    "trigger": "LastError != null",
+    "uno": {
+     "member": "LastError"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "alert",
+      "rect": {
+       "x": 0.07,
+       "y": 0.75,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Upload failed. Saved to outbox."
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.complete.disabled",
+   "type": "state",
+   "name": "Disabled",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 31
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 31
+    },
+    "rationale": "IsEnabled bound to CanComplete."
+   },
+   "properties": {
+    "trigger": "CanComplete == false",
+    "uno": {
+     "member": "CanComplete"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.86,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Complete job",
+      "emphasis": "disabled"
+     }
+    ]
+   }
+  },
+  {
+   "id": "screen.map",
+   "type": "screen",
+   "name": "Map",
+   "summary": "Jobs near the technician; a pin opens the job.",
+   "source": {
+    "file": "f.map-xaml",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 72
+    }
+   },
+   "properties": {
+    "route": "Map",
+    "uno": {
+     "type": "Page",
+     "class": "Fieldwork.Presentation.MapPage"
+    }
+   },
+   "preview": {
+    "parts": [
+     {
+      "kind": "heading",
+      "rect": {
+       "x": 0.07,
+       "y": 0.045,
+       "w": 0.6,
+       "h": 0.06
+      },
+      "label": "Nearby jobs"
+     },
+     {
+      "kind": "image",
+      "rect": {
+       "x": 0.0,
+       "y": 0.13,
+       "w": 1.0,
+       "h": 0.87
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "inst.map.pins-feed",
+   "type": "component-instance",
+   "name": "Pins feed",
+   "source": {
+    "file": "f.map-xaml",
+    "line": 9,
+    "endLine": 18
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 9
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "FeedView",
+     "xName": "PinsFeed"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.0,
+     "y": 0.13,
+     "w": 1.0,
+     "h": 0.87
+    }
+   }
+  },
+  {
+   "id": "inst.map.job-map",
+   "type": "component-instance",
+   "name": "Job map",
+   "source": {
+    "file": "f.map-xaml",
+    "line": 11,
+    "endLine": 13
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 11
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "MapView",
+     "xName": "JobMap"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.0,
+     "y": 0.13,
+     "w": 1.0,
+     "h": 0.87
+    }
+   }
+  },
+  {
+   "id": "state.map.loading",
+   "type": "state",
+   "name": "Loading",
+   "source": {
+    "file": "f.map-xaml",
+    "line": 15,
+    "endLine": 17
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 15
+    },
+    "rationale": "FeedView.ProgressTemplate"
+   },
+   "properties": {
+    "trigger": "Pins feed is loading",
+    "uno": {
+     "mechanism": "FeedView.ProgressTemplate"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "spinner",
+      "rect": {
+       "x": 0.0,
+       "y": 0.13,
+       "w": 1.0,
+       "h": 0.87
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.map.populated",
+   "type": "state",
+   "name": "Populated",
+   "source": {
+    "file": "f.map-xaml",
+    "line": 11
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 11
+    },
+    "rationale": "The FeedView's data template."
+   },
+   "properties": {
+    "trigger": "Pins feed has items",
+    "uno": {
+     "mechanism": "FeedView data template"
+    }
+   },
+   "preview": {
+    "overrides": []
+   }
+  },
+  {
+   "id": "screen.photos",
+   "type": "screen",
+   "name": "Photos",
+   "summary": "Capture and review photos for the job.",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 73
+    }
+   },
+   "properties": {
+    "route": "Photos",
+    "uno": {
+     "type": "Page",
+     "class": "Fieldwork.Presentation.PhotosPage"
+    }
+   },
+   "preview": {
+    "parts": [
+     {
+      "kind": "heading",
+      "rect": {
+       "x": 0.07,
+       "y": 0.045,
+       "w": 0.5,
+       "h": 0.06
+      },
+      "label": "Photos"
+     },
+     {
+      "kind": "list",
+      "rect": {
+       "x": 0.07,
+       "y": 0.13,
+       "w": 0.86,
+       "h": 0.68
+      },
+      "rows": 3,
+      "items": [
+       "Panel before · 09:12",
+       "Panel after · 09:47",
+       "Serial plate · 09:49"
+      ]
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.86,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Take photo",
+      "emphasis": "primary"
+     }
+    ]
+   }
+  },
+  {
+   "id": "inst.photos.camera-warning",
+   "type": "component-instance",
+   "name": "Camera warning",
+   "summary": "Collapsed while a camera is available.",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 8,
+    "endLine": 10
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 8
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "InfoBar",
+     "xName": "CameraWarning"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.13,
+     "w": 0.86,
+     "h": 0.075
+    }
+   }
+  },
+  {
+   "id": "inst.photos.photos-feed",
+   "type": "component-instance",
+   "name": "Photos feed",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 11,
+    "endLine": 22
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 11
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "FeedView",
+     "xName": "PhotosFeed"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.13,
+     "w": 0.86,
+     "h": 0.68
+    }
+   }
+  },
+  {
+   "id": "inst.photos.grid",
+   "type": "component-instance",
+   "name": "Photo grid",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 13,
+    "endLine": 17
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 13
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "GridView",
+     "xName": "PhotoGrid"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.08,
+     "y": 0.14,
+     "w": 0.84,
+     "h": 0.66
+    }
+   }
+  },
+  {
+   "id": "inst.photos.photo-tile",
+   "type": "component-instance",
+   "name": "PhotoTile (Photos)",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 15
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 15
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "PhotoTile"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.09,
+     "y": 0.15,
+     "w": 0.26,
+     "h": 0.16
+    }
+   }
+  },
+  {
+   "id": "inst.photos.capture",
+   "type": "component-instance",
+   "name": "Take photo",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 23,
+    "endLine": 31
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 23
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "styleKey": "FilledButtonStyle",
+     "xName": "CaptureButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.86,
+     "w": 0.86,
+     "h": 0.08
+    }
+   }
+  },
+  {
+   "id": "state.photos.empty",
+   "type": "state",
+   "name": "Empty",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 19,
+    "endLine": 21
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 19
+    },
+    "rationale": "FeedView.NoneTemplate"
+   },
+   "properties": {
+    "trigger": "No photos yet",
+    "uno": {
+     "mechanism": "FeedView.NoneTemplate"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "empty",
+      "rect": {
+       "x": 0.07,
+       "y": 0.13,
+       "w": 0.86,
+       "h": 0.68
+      },
+      "label": "No photos yet. Capture at least one before completing."
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.photos.populated",
+   "type": "state",
+   "name": "Populated",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 13
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 13
+    },
+    "rationale": "The FeedView's data template."
+   },
+   "properties": {
+    "trigger": "Photos has items",
+    "uno": {
+     "mechanism": "FeedView data template"
+    }
+   },
+   "preview": {
+    "overrides": []
+   }
+  },
+  {
+   "id": "state.photos.capturing",
+   "type": "state",
+   "name": "Capturing",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 29
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 29
+    }
+   },
+   "properties": {
+    "trigger": "IsCapturing == true",
+    "uno": {
+     "member": "IsCapturing"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.86,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Take photo  ◌",
+      "emphasis": "disabled"
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.photos.camera-unavailable",
+   "type": "state",
+   "name": "Camera unavailable",
+   "source": {
+    "file": "f.photos-xaml",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 9
+    }
+   },
+   "properties": {
+    "trigger": "CameraUnavailable == true",
+    "uno": {
+     "member": "CameraUnavailable"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "alert",
+      "rect": {
+       "x": 0.07,
+       "y": 0.13,
+       "w": 0.86,
+       "h": 0.075
+      },
+      "label": "No camera found."
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.86,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Take photo",
+      "emphasis": "disabled"
+     }
+    ]
+   }
+  },
+  {
+   "id": "screen.signature",
+   "type": "screen",
+   "name": "Signature",
+   "summary": "Customer signs on the device.",
+   "source": {
+    "file": "f.signature-xaml",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 74
+    }
+   },
+   "properties": {
+    "route": "Signature",
+    "uno": {
+     "type": "Page",
+     "class": "Fieldwork.Presentation.SignaturePage"
+    }
+   },
+   "preview": {
+    "parts": [
+     {
+      "kind": "heading",
+      "rect": {
+       "x": 0.07,
+       "y": 0.045,
+       "w": 0.7,
+       "h": 0.06
+      },
+      "label": "Customer signature"
+     },
+     {
+      "kind": "image",
+      "rect": {
+       "x": 0.07,
+       "y": 0.13,
+       "w": 0.86,
+       "h": 0.68
+      }
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.4,
+       "y": 0.86,
+       "w": 0.24,
+       "h": 0.07
+      },
+      "label": "Clear",
+      "emphasis": "secondary"
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.67,
+       "y": 0.86,
+       "w": 0.26,
+       "h": 0.07
+      },
+      "label": "Done",
+      "emphasis": "primary"
+     }
+    ]
+   }
+  },
+  {
+   "id": "inst.signature.pad",
+   "type": "component-instance",
+   "name": "Signature pad",
+   "source": {
+    "file": "f.signature-xaml",
+    "line": 8,
+    "endLine": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 8
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "SignaturePad",
+     "xName": "Pad"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.13,
+     "w": 0.86,
+     "h": 0.68
+    }
+   }
+  },
+  {
+   "id": "inst.signature.clear",
+   "type": "component-instance",
+   "name": "Clear",
+   "source": {
+    "file": "f.signature-xaml",
+    "line": 11
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 11
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "xName": "ClearButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.4,
+     "y": 0.86,
+     "w": 0.24,
+     "h": 0.07
+    }
+   }
+  },
+  {
+   "id": "inst.signature.done",
+   "type": "component-instance",
+   "name": "Done",
+   "source": {
+    "file": "f.signature-xaml",
+    "line": 12,
+    "endLine": 14
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 12
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "styleKey": "FilledButtonStyle",
+     "xName": "DoneButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.67,
+     "y": 0.86,
+     "w": 0.26,
+     "h": 0.07
+    }
+   }
+  },
+  {
+   "id": "state.signature.blank",
+   "type": "state",
+   "name": "Blank",
+   "source": {
+    "file": "f.signature-xaml",
+    "line": 13
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 13
+    },
+    "rationale": "Done is disabled until there is a signature."
+   },
+   "properties": {
+    "trigger": "HasSignature == false",
+    "uno": {
+     "member": "HasSignature"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.67,
+       "y": 0.86,
+       "w": 0.26,
+       "h": 0.07
+      },
+      "label": "Done",
+      "emphasis": "disabled"
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.signature.signed",
+   "type": "state",
+   "name": "Signed",
+   "source": {
+    "file": "f.signature-xaml",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 9
+    },
+    "rationale": "The pad writes strokes into Signature; HasSignature follows."
+   },
+   "properties": {
+    "trigger": "HasSignature == true",
+    "uno": {
+     "member": "HasSignature"
+    }
+   },
+   "preview": {
+    "overrides": []
+   }
+  },
+  {
+   "id": "screen.outbox",
+   "type": "screen",
+   "name": "Outbox",
+   "summary": "Uploads waiting for a connection, and what failed.",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 75
+    }
+   },
+   "properties": {
+    "route": "Outbox",
+    "uno": {
+     "type": "Page",
+     "class": "Fieldwork.Presentation.OutboxPage"
+    }
+   },
+   "preview": {
+    "parts": [
+     {
+      "kind": "heading",
+      "rect": {
+       "x": 0.07,
+       "y": 0.045,
+       "w": 0.5,
+       "h": 0.06
+      },
+      "label": "Outbox"
+     },
+     {
+      "kind": "text",
+      "rect": {
+       "x": 0.07,
+       "y": 0.125,
+       "w": 0.86,
+       "h": 0.05
+      },
+      "label": "1 failed"
+     },
+     {
+      "kind": "list",
+      "rect": {
+       "x": 0.07,
+       "y": 0.2,
+       "w": 0.86,
+       "h": 0.6
+      },
+      "rows": 3,
+      "items": [
+       "Hartley Dental, 2 photos · Failed",
+       "Mapleview Clinic, notes · Pending",
+       "Westmount Library, signature · Pending"
+      ]
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.86,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Sync now",
+      "emphasis": "primary"
+     }
+    ]
+   }
+  },
+  {
+   "id": "inst.outbox.failed",
+   "type": "component-instance",
+   "name": "Failed count",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 8,
+    "endLine": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 8
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "TextBlock",
+     "xName": "FailedText"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.125,
+     "w": 0.86,
+     "h": 0.05
+    }
+   }
+  },
+  {
+   "id": "inst.outbox.feed",
+   "type": "component-instance",
+   "name": "Outbox feed",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 10,
+    "endLine": 26
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 10
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "FeedView",
+     "xName": "OutboxFeed"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.2,
+     "w": 0.86,
+     "h": 0.6
+    }
+   }
+  },
+  {
+   "id": "inst.outbox.list",
+   "type": "component-instance",
+   "name": "Outbox list",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 12,
+    "endLine": 21
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 12
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "ListView",
+     "xName": "OutboxList"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.08,
+     "y": 0.21,
+     "w": 0.84,
+     "h": 0.58
+    }
+   }
+  },
+  {
+   "id": "inst.outbox.status-chip",
+   "type": "component-instance",
+   "name": "StatusChip (Outbox)",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 17
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 17
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "StatusChip"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.68,
+     "y": 0.222,
+     "w": 0.22,
+     "h": 0.05
+    }
+   }
+  },
+  {
+   "id": "inst.outbox.sync-now",
+   "type": "component-instance",
+   "name": "Sync now",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 27,
+    "endLine": 35
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 27
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "styleKey": "FilledButtonStyle",
+     "xName": "SyncNowButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.86,
+     "w": 0.86,
+     "h": 0.08
+    }
+   }
+  },
+  {
+   "id": "state.outbox.empty",
+   "type": "state",
+   "name": "All synced",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 23,
+    "endLine": 25
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 23
+    },
+    "rationale": "FeedView.NoneTemplate"
+   },
+   "properties": {
+    "trigger": "Nothing pending",
+    "uno": {
+     "mechanism": "FeedView.NoneTemplate"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "empty",
+      "rect": {
+       "x": 0.07,
+       "y": 0.2,
+       "w": 0.86,
+       "h": 0.6
+      },
+      "label": "Everything is synced."
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.outbox.pending",
+   "type": "state",
+   "name": "Pending",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 12
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 12
+    },
+    "rationale": "The FeedView's data template."
+   },
+   "properties": {
+    "trigger": "Items has entries",
+    "uno": {
+     "mechanism": "FeedView data template"
+    }
+   },
+   "preview": {
+    "overrides": []
+   }
+  },
+  {
+   "id": "state.outbox.syncing",
+   "type": "state",
+   "name": "Syncing",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 33
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 33
+    }
+   },
+   "properties": {
+    "trigger": "IsSyncing == true",
+    "uno": {
+     "member": "IsSyncing"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.86,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Sync now  ◌",
+      "emphasis": "disabled"
+     }
+    ]
+   }
+  },
+  {
+   "id": "state.outbox.failed",
+   "type": "state",
+   "name": "Failed",
+   "source": {
+    "file": "f.outbox-xaml",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.85,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 9
+    },
+    "rationale": "The failed label is the only signal; the list keeps failed items in place."
+   },
+   "properties": {
+    "trigger": "FailedCount > 0",
+    "uno": {
+     "member": "FailedCount"
+    }
+   },
+   "preview": {
+    "overrides": [
+     {
+      "kind": "alert",
+      "rect": {
+       "x": 0.07,
+       "y": 0.125,
+       "w": 0.86,
+       "h": 0.05
+      },
+      "label": "1 failed"
+     }
+    ]
+   }
+  },
+  {
+   "id": "screen.profile",
+   "type": "screen",
+   "name": "Profile",
+   "summary": "The signed-in technician.",
+   "source": {
+    "file": "f.profile-xaml",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 76
+    }
+   },
+   "properties": {
+    "route": "Profile",
+    "uno": {
+     "type": "Page",
+     "class": "Fieldwork.Presentation.ProfilePage"
+    }
+   },
+   "preview": {
+    "parts": [
+     {
+      "kind": "heading",
+      "rect": {
+       "x": 0.07,
+       "y": 0.045,
+       "w": 0.7,
+       "h": 0.06
+      },
+      "label": "Marie-Kim Tremblay"
+     },
+     {
+      "kind": "text",
+      "rect": {
+       "x": 0.07,
+       "y": 0.125,
+       "w": 0.7,
+       "h": 0.05
+      },
+      "label": "Montréal Ouest"
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.21,
+       "w": 0.86,
+       "h": 0.07
+      },
+      "label": "Settings",
+      "emphasis": "secondary"
+     },
+     {
+      "kind": "button",
+      "rect": {
+       "x": 0.07,
+       "y": 0.31,
+       "w": 0.86,
+       "h": 0.07
+      },
+      "label": "Sign out",
+      "emphasis": "secondary"
+     }
+    ]
+   }
+  },
+  {
+   "id": "inst.profile.name",
+   "type": "component-instance",
+   "name": "Display name",
+   "source": {
+    "file": "f.profile-xaml",
+    "line": 6
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 6
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "TextBlock",
+     "xName": "NameText"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.045,
+     "w": 0.7,
+     "h": 0.06
+    }
+   }
+  },
+  {
+   "id": "inst.profile.region",
+   "type": "component-instance",
+   "name": "Region",
+   "source": {
+    "file": "f.profile-xaml",
+    "line": 7
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 7
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "TextBlock",
+     "xName": "RegionText"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.125,
+     "w": 0.7,
+     "h": 0.05
+    }
+   }
+  },
+  {
+   "id": "inst.profile.settings",
+   "type": "component-instance",
+   "name": "Settings button",
+   "source": {
+    "file": "f.profile-xaml",
+    "line": 8
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 8
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "xName": "SettingsButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.21,
+     "w": 0.86,
+     "h": 0.07
+    }
+   }
+  },
+  {
+   "id": "inst.profile.sign-out",
+   "type": "component-instance",
+   "name": "Sign out",
+   "source": {
+    "file": "f.profile-xaml",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 9
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "Button",
+     "xName": "SignOutButton"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.31,
+     "w": 0.86,
+     "h": 0.07
+    }
+   }
+  },
+  {
+   "id": "screen.settings",
+   "type": "screen",
+   "name": "Settings",
+   "summary": "Device preferences.",
+   "source": {
+    "file": "f.settings-xaml",
+    "line": 1
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 77
+    }
+   },
+   "properties": {
+    "route": "Settings",
+    "uno": {
+     "type": "Page",
+     "class": "Fieldwork.Presentation.SettingsPage"
+    }
+   },
+   "preview": {
+    "parts": [
+     {
+      "kind": "heading",
+      "rect": {
+       "x": 0.07,
+       "y": 0.045,
+       "w": 0.5,
+       "h": 0.06
+      },
+      "label": "Settings"
+     },
+     {
+      "kind": "stepper",
+      "rect": {
+       "x": 0.07,
+       "y": 0.13,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Upload photos on Wi-Fi only"
+     },
+     {
+      "kind": "input",
+      "rect": {
+       "x": 0.07,
+       "y": 0.24,
+       "w": 0.86,
+       "h": 0.08
+      },
+      "label": "Map style · Streets"
+     }
+    ]
+   }
+  },
+  {
+   "id": "inst.settings.wifi-only",
+   "type": "component-instance",
+   "name": "Wi-Fi only",
+   "source": {
+    "file": "f.settings-xaml",
+    "line": 6,
+    "endLine": 7
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-xaml",
+     "line": 6
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "ToggleSwitch",
+     "xName": "WifiOnlyToggle"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.13,
+     "w": 0.86,
+     "h": 0.08
+    }
+   }
+  },
+  {
+   "id": "inst.settings.map-style",
+   "type": "component-instance",
+   "name": "Map style",
+   "source": {
+    "file": "f.settings-xaml",
+    "line": 8,
+    "endLine": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-xaml",
+     "line": 8
+    }
+   },
+   "properties": {
+    "uno": {
+     "type": "ComboBox",
+     "xName": "MapStyleBox"
+    }
+   },
+   "preview": {
+    "bounds": {
+     "x": 0.07,
+     "y": 0.24,
+     "w": 0.86,
+     "h": 0.08
+    }
+   }
+  },
+  {
+   "id": "route.today-to-job",
+   "type": "route",
+   "name": "Today → Job",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 21
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 21
+    },
+    "rationale": "uen:Navigation.Request=\"Job\" on the list; the clicked job is passed as data."
+   },
+   "properties": {
+    "request": "Job",
+    "mechanism": "Navigation.Request",
+    "data": "Job"
+   }
+  },
+  {
+   "id": "route.today-to-outbox",
+   "type": "route",
+   "name": "Today → Outbox",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 12
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 12
+    }
+   },
+   "properties": {
+    "request": "Outbox",
+    "mechanism": "Navigation.Request"
+   }
+  },
+  {
+   "id": "route.today-to-profile",
+   "type": "route",
+   "name": "Today → Profile",
+   "source": {
+    "file": "f.today-xaml",
+    "line": 9
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 9
+    }
+   },
+   "properties": {
+    "request": "Profile",
+    "mechanism": "Navigation.Request"
+   }
+  },
+  {
+   "id": "route.job-to-map",
+   "type": "route",
+   "name": "Job → Map",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 17
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 17
+    }
+   },
+   "properties": {
+    "request": "Map",
+    "mechanism": "Navigation.Request"
+   }
+  },
+  {
+   "id": "route.map-to-job",
+   "type": "route",
+   "name": "Map → Job",
+   "source": {
+    "file": "f.map-xaml",
+    "line": 13
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 13
+    },
+    "rationale": "A pin opens its job; with Job → Map this is a cycle."
+   },
+   "properties": {
+    "request": "Job",
+    "mechanism": "Navigation.Request",
+    "data": "JobPin"
+   }
+  },
+  {
+   "id": "route.job-to-photos",
+   "type": "route",
+   "name": "Job → Photos",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 26
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 26
+    }
+   },
+   "properties": {
+    "request": "Photos",
+    "mechanism": "Navigation.Request",
+    "data": "Job"
+   }
+  },
+  {
+   "id": "route.job-to-signature",
+   "type": "route",
+   "name": "Job → Signature",
+   "source": {
+    "file": "f.job-xaml",
+    "line": 28
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 28
+    }
+   },
+   "properties": {
+    "request": "Signature",
+    "mechanism": "Navigation.Request"
+   }
+  },
+  {
+   "id": "route.signature-to-job",
+   "type": "route",
+   "name": "Signature → Job",
+   "source": {
+    "file": "f.signature-xaml",
+    "line": 14
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 14
+    },
+    "rationale": "\"-\" navigates back to the page that opened Signature, which is always Job."
+   },
+   "properties": {
+    "request": "-",
+    "mechanism": "Navigation.Request (back)"
+   }
+  },
+  {
+   "id": "route.job-to-today",
+   "type": "route",
+   "name": "Job → Today",
+   "source": {
+    "file": "f.job-vm",
+    "line": 41
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 41
+    },
+    "rationale": "Complete navigates in code after the upload succeeds."
+   },
+   "properties": {
+    "request": "Today",
+    "mechanism": "INavigator.NavigateRouteAsync"
+   }
+  },
+  {
+   "id": "route.profile-to-settings",
+   "type": "route",
+   "name": "Profile → Settings",
+   "source": {
+    "file": "f.profile-xaml",
+    "line": 8
+   },
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 8
+    }
+   },
+   "properties": {
+    "request": "Settings",
+    "mechanism": "Navigation.Request"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "vm.today",
+   "relation": "exposes",
+   "to": "prop.today.jobs",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 5
+    }
+   }
+  },
+  {
+   "from": "vm.today",
+   "relation": "exposes",
+   "to": "prop.today.is-offline",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "vm.today",
+   "relation": "exposes",
+   "to": "prop.today.last-synced-label",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "vm.today",
+   "relation": "exposes",
+   "to": "prop.today.pending-uploads",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "vm.today",
+   "relation": "exposes",
+   "to": "cmd.today.refresh",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.job",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 6
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.status",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 8
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.notes",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 10
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.photos",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 12
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.photo-count",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 14
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.signature",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 16
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.has-signature",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 18
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.is-completing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 20
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.last-error",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 22
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.can-complete",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.has-unsynced-changes-since-last-successful-upload",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 27
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "prop.job.estimated-travel-time-from-current-location",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 29
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "cmd.job.save-signature",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 31
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "cmd.job.clear-signature",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 33
+    }
+   }
+  },
+  {
+   "from": "vm.job",
+   "relation": "exposes",
+   "to": "cmd.job.complete",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 35
+    }
+   }
+  },
+  {
+   "from": "vm.map",
+   "relation": "exposes",
+   "to": "prop.map.job-pins",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-vm",
+     "line": 5
+    }
+   }
+  },
+  {
+   "from": "vm.map",
+   "relation": "exposes",
+   "to": "prop.map.selected-job",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-vm",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "vm.photos",
+   "relation": "exposes",
+   "to": "prop.photos.photos",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 5
+    }
+   }
+  },
+  {
+   "from": "vm.photos",
+   "relation": "exposes",
+   "to": "prop.photos.is-capturing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "vm.photos",
+   "relation": "exposes",
+   "to": "prop.photos.camera-unavailable",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "vm.photos",
+   "relation": "exposes",
+   "to": "prop.photos.can-capture",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "vm.photos",
+   "relation": "exposes",
+   "to": "cmd.photos.capture",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "vm.outbox",
+   "relation": "exposes",
+   "to": "prop.outbox.items",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 5
+    }
+   }
+  },
+  {
+   "from": "vm.outbox",
+   "relation": "exposes",
+   "to": "prop.outbox.failed-count",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "vm.outbox",
+   "relation": "exposes",
+   "to": "prop.outbox.is-syncing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "vm.outbox",
+   "relation": "exposes",
+   "to": "prop.outbox.can-sync",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "vm.outbox",
+   "relation": "exposes",
+   "to": "cmd.outbox.sync-now",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "vm.profile",
+   "relation": "exposes",
+   "to": "prop.profile.display-name",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-vm",
+     "line": 5
+    }
+   }
+  },
+  {
+   "from": "vm.profile",
+   "relation": "exposes",
+   "to": "prop.profile.region",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-vm",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "vm.profile",
+   "relation": "exposes",
+   "to": "cmd.profile.sign-out",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-vm",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "vm.settings",
+   "relation": "exposes",
+   "to": "prop.settings.upload-on-wifi-only",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-vm",
+     "line": 5
+    }
+   }
+  },
+  {
+   "from": "vm.settings",
+   "relation": "exposes",
+   "to": "prop.settings.map-styles",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-vm",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "vm.settings",
+   "relation": "exposes",
+   "to": "prop.settings.map-style",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-vm",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "prop.job.photo-count",
+   "relation": "depends-on",
+   "to": "prop.job.photos",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 14
+    }
+   }
+  },
+  {
+   "from": "prop.job.has-signature",
+   "relation": "depends-on",
+   "to": "prop.job.signature",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 18
+    }
+   }
+  },
+  {
+   "from": "prop.job.can-complete",
+   "relation": "depends-on",
+   "to": "prop.job.has-signature",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    }
+   }
+  },
+  {
+   "from": "prop.job.can-complete",
+   "relation": "depends-on",
+   "to": "prop.job.photo-count",
+   "label": ">= 1",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    }
+   }
+  },
+  {
+   "from": "prop.job.can-complete",
+   "relation": "depends-on",
+   "to": "prop.job.status",
+   "label": "== OnSite",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    }
+   }
+  },
+  {
+   "from": "prop.job.can-complete",
+   "relation": "depends-on",
+   "to": "prop.job.is-completing",
+   "label": "negated",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    }
+   }
+  },
+  {
+   "from": "prop.photos.can-capture",
+   "relation": "depends-on",
+   "to": "prop.photos.camera-unavailable",
+   "label": "negated",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "prop.photos.can-capture",
+   "relation": "depends-on",
+   "to": "prop.photos.is-capturing",
+   "label": "negated",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "prop.outbox.can-sync",
+   "relation": "depends-on",
+   "to": "prop.outbox.is-syncing",
+   "label": "negated",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "prop.outbox.failed-count",
+   "relation": "depends-on",
+   "to": "prop.outbox.items",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "prop.today.pending-uploads",
+   "relation": "depends-on",
+   "to": "prop.outbox.items",
+   "label": "via IOutboxStore.Pending",
+   "evidence": {
+    "kind": "inferred",
+    "confidence": 0.75,
+    "source": {
+     "file": "f.today-vm",
+     "line": 11
+    },
+    "rationale": "TodayModel.PendingUploads and OutboxModel.Items both read IOutboxStore.Pending. Neither model references the other; the link is inferred from the shared store."
+   }
+  },
+  {
+   "from": "prop.job.has-unsynced-changes-since-last-successful-upload",
+   "relation": "depends-on",
+   "to": "prop.outbox.failed-count",
+   "label": "via IOutboxStore",
+   "evidence": {
+    "kind": "inferred",
+    "confidence": 0.55,
+    "source": {
+     "file": "f.job-vm",
+     "line": 27
+    },
+    "rationale": "HasPendingFor and FailedCount are both derived from IOutboxStore, but HasPendingFor's implementation is not in the excerpts; a failed upload probably keeps the job unsynced."
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "belongs-to",
+   "to": "feature.jobs",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "uses-viewmodel",
+   "to": "vm.today",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 56
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "contains",
+   "to": "inst.today.avatar",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 8
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "contains",
+   "to": "inst.today.outbox-button",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "contains",
+   "to": "inst.today.offline-banner",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 14
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "contains",
+   "to": "inst.today.jobs-feed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 17
+    }
+   }
+  },
+  {
+   "from": "inst.today.jobs-feed",
+   "relation": "contains",
+   "to": "inst.today.job-list",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 20
+    }
+   }
+  },
+  {
+   "from": "inst.today.job-list",
+   "relation": "contains",
+   "to": "inst.today.status-chip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 26
+    }
+   }
+  },
+  {
+   "from": "inst.today.status-chip",
+   "relation": "instance-of",
+   "to": "component.status-chip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 26
+    }
+   }
+  },
+  {
+   "from": "inst.today.outbox-button",
+   "relation": "binds-to",
+   "to": "prop.today.pending-uploads",
+   "label": "Content",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "inst.today.offline-banner",
+   "relation": "binds-to",
+   "to": "prop.today.is-offline",
+   "label": "IsOpen",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "inst.today.offline-banner",
+   "relation": "binds-to",
+   "to": "prop.today.last-synced-label",
+   "label": "Message",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 16
+    }
+   }
+  },
+  {
+   "from": "inst.today.jobs-feed",
+   "relation": "binds-to",
+   "to": "prop.today.jobs",
+   "label": "Source",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 17
+    }
+   }
+  },
+  {
+   "from": "inst.today.jobs-feed",
+   "relation": "invokes",
+   "to": "cmd.today.refresh",
+   "label": "RefreshCommand",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 18
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "has-state",
+   "to": "state.today.loading",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 32
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "has-state",
+   "to": "state.today.empty",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 35
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "has-state",
+   "to": "state.today.error",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 38
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "has-state",
+   "to": "state.today.populated",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 20
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "has-state",
+   "to": "state.today.offline",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "screen.today",
+   "relation": "has-state",
+   "to": "state.today.refreshing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 18
+    }
+   }
+  },
+  {
+   "from": "cmd.today.refresh",
+   "relation": "transitions-to",
+   "to": "state.today.refreshing",
+   "label": "pull to refresh",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "state.today.refreshing",
+   "relation": "transitions-to",
+   "to": "state.today.populated",
+   "label": "refreshed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-vm",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "state.today.loading",
+   "relation": "transitions-to",
+   "to": "state.today.populated",
+   "label": "items arrive",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "state.today.loading",
+   "relation": "transitions-to",
+   "to": "state.today.empty",
+   "label": "no items",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "state.today.loading",
+   "relation": "transitions-to",
+   "to": "state.today.error",
+   "label": "exception",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "state.today.offline",
+   "relation": "depends-on",
+   "to": "prop.today.is-offline",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "belongs-to",
+   "to": "feature.jobs",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "uses-viewmodel",
+   "to": "vm.job",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 57
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.job-feed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.customer",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 10
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.status-chip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "inst.job.status-chip",
+   "relation": "instance-of",
+   "to": "component.status-chip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.sync-chip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "inst.job.sync-chip",
+   "relation": "instance-of",
+   "to": "component.status-chip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.address",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.map-button",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 16
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.notes",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 18
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.photo-strip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 20
+    }
+   }
+  },
+  {
+   "from": "inst.job.photo-strip",
+   "relation": "contains",
+   "to": "inst.job.photo-tile",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 22
+    }
+   }
+  },
+  {
+   "from": "inst.job.photo-tile",
+   "relation": "instance-of",
+   "to": "component.photo-tile",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 22
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.photos-button",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 25
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.sign-button",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 27
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "contains",
+   "to": "inst.job.complete",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 29
+    }
+   }
+  },
+  {
+   "from": "inst.job.job-feed",
+   "relation": "binds-to",
+   "to": "prop.job.job",
+   "label": "Source",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "inst.job.status-chip",
+   "relation": "binds-to",
+   "to": "prop.job.status",
+   "label": "Status",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 12
+    }
+   }
+  },
+  {
+   "from": "inst.job.sync-chip",
+   "relation": "binds-to",
+   "to": "prop.job.has-unsynced-changes-since-last-successful-upload",
+   "label": "Status",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 14
+    }
+   }
+  },
+  {
+   "from": "inst.job.notes",
+   "relation": "binds-to",
+   "to": "prop.job.notes",
+   "label": "Text (TwoWay)",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 19
+    }
+   }
+  },
+  {
+   "from": "inst.job.photo-strip",
+   "relation": "binds-to",
+   "to": "prop.job.photos",
+   "label": "ItemsSource",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 20
+    }
+   }
+  },
+  {
+   "from": "inst.job.photos-button",
+   "relation": "binds-to",
+   "to": "prop.job.photo-count",
+   "label": "Content",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 26
+    }
+   }
+  },
+  {
+   "from": "inst.job.complete",
+   "relation": "binds-to",
+   "to": "prop.job.can-complete",
+   "label": "IsEnabled",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 31
+    }
+   }
+  },
+  {
+   "from": "inst.job.complete",
+   "relation": "binds-to",
+   "to": "prop.job.is-completing",
+   "label": "ProgressRing.IsActive",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 35
+    }
+   }
+  },
+  {
+   "from": "inst.job.complete",
+   "relation": "invokes",
+   "to": "cmd.job.complete",
+   "label": "Command",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 32
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "has-state",
+   "to": "state.job.loading",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 40
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "has-state",
+   "to": "state.job.ready",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "has-state",
+   "to": "state.job.completing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 35
+    }
+   }
+  },
+  {
+   "from": "screen.job",
+   "relation": "has-state",
+   "to": "state.job.error",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 43
+    }
+   }
+  },
+  {
+   "from": "inst.job.complete",
+   "relation": "has-state",
+   "to": "state.complete.disabled",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 31
+    }
+   }
+  },
+  {
+   "from": "cmd.job.complete",
+   "relation": "transitions-to",
+   "to": "state.job.completing",
+   "label": "IsCompleting = true",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 37
+    }
+   }
+  },
+  {
+   "from": "state.job.completing",
+   "relation": "transitions-to",
+   "to": "state.job.error",
+   "label": "JobException",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 43
+    }
+   }
+  },
+  {
+   "from": "state.job.completing",
+   "relation": "transitions-to",
+   "to": "state.job.ready",
+   "label": "finally",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 49
+    }
+   }
+  },
+  {
+   "from": "state.job.completing",
+   "relation": "depends-on",
+   "to": "prop.job.is-completing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 35
+    }
+   }
+  },
+  {
+   "from": "state.job.error",
+   "relation": "depends-on",
+   "to": "prop.job.last-error",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 45
+    }
+   }
+  },
+  {
+   "from": "state.job.ready",
+   "relation": "depends-on",
+   "to": "prop.job.can-complete",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 24
+    }
+   }
+  },
+  {
+   "from": "state.complete.disabled",
+   "relation": "depends-on",
+   "to": "prop.job.can-complete",
+   "label": "== false",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 31
+    }
+   }
+  },
+  {
+   "from": "screen.map",
+   "relation": "belongs-to",
+   "to": "feature.jobs",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "screen.map",
+   "relation": "uses-viewmodel",
+   "to": "vm.map",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 58
+    }
+   }
+  },
+  {
+   "from": "screen.map",
+   "relation": "contains",
+   "to": "inst.map.pins-feed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "inst.map.pins-feed",
+   "relation": "contains",
+   "to": "inst.map.job-map",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "inst.map.pins-feed",
+   "relation": "binds-to",
+   "to": "prop.map.job-pins",
+   "label": "Source",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "inst.map.job-map",
+   "relation": "binds-to",
+   "to": "prop.map.selected-job",
+   "label": "SelectedPin (TwoWay)",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 12
+    }
+   }
+  },
+  {
+   "from": "screen.map",
+   "relation": "has-state",
+   "to": "state.map.loading",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "screen.map",
+   "relation": "has-state",
+   "to": "state.map.populated",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "belongs-to",
+   "to": "feature.capture",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "uses-viewmodel",
+   "to": "vm.photos",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 59
+    }
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "contains",
+   "to": "inst.photos.camera-warning",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 8
+    }
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "contains",
+   "to": "inst.photos.photos-feed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "inst.photos.photos-feed",
+   "relation": "contains",
+   "to": "inst.photos.grid",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "inst.photos.grid",
+   "relation": "contains",
+   "to": "inst.photos.photo-tile",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "inst.photos.photo-tile",
+   "relation": "instance-of",
+   "to": "component.photo-tile",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "contains",
+   "to": "inst.photos.capture",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 23
+    }
+   }
+  },
+  {
+   "from": "inst.photos.camera-warning",
+   "relation": "binds-to",
+   "to": "prop.photos.camera-unavailable",
+   "label": "IsOpen",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "inst.photos.photos-feed",
+   "relation": "binds-to",
+   "to": "prop.photos.photos",
+   "label": "Source",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "inst.photos.capture",
+   "relation": "binds-to",
+   "to": "prop.photos.can-capture",
+   "label": "IsEnabled",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 25
+    }
+   }
+  },
+  {
+   "from": "inst.photos.capture",
+   "relation": "binds-to",
+   "to": "prop.photos.is-capturing",
+   "label": "ProgressRing.IsActive",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 29
+    }
+   }
+  },
+  {
+   "from": "inst.photos.capture",
+   "relation": "invokes",
+   "to": "cmd.photos.capture",
+   "label": "Command",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 26
+    }
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "has-state",
+   "to": "state.photos.empty",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 19
+    }
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "has-state",
+   "to": "state.photos.populated",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "has-state",
+   "to": "state.photos.capturing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 29
+    }
+   }
+  },
+  {
+   "from": "screen.photos",
+   "relation": "has-state",
+   "to": "state.photos.camera-unavailable",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "cmd.photos.capture",
+   "relation": "transitions-to",
+   "to": "state.photos.capturing",
+   "label": "IsCapturing = true",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "state.photos.capturing",
+   "relation": "transitions-to",
+   "to": "state.photos.populated",
+   "label": "finally",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-vm",
+     "line": 17
+    }
+   }
+  },
+  {
+   "from": "state.photos.empty",
+   "relation": "transitions-to",
+   "to": "state.photos.capturing",
+   "label": "take photo",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.8
+   }
+  },
+  {
+   "from": "state.photos.capturing",
+   "relation": "depends-on",
+   "to": "prop.photos.is-capturing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 29
+    }
+   }
+  },
+  {
+   "from": "state.photos.camera-unavailable",
+   "relation": "depends-on",
+   "to": "prop.photos.camera-unavailable",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.photos-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "screen.signature",
+   "relation": "belongs-to",
+   "to": "feature.capture",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "screen.signature",
+   "relation": "uses-viewmodel",
+   "to": "vm.job",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 60
+    }
+   }
+  },
+  {
+   "from": "screen.signature",
+   "relation": "contains",
+   "to": "inst.signature.pad",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 8
+    }
+   }
+  },
+  {
+   "from": "screen.signature",
+   "relation": "contains",
+   "to": "inst.signature.clear",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "screen.signature",
+   "relation": "contains",
+   "to": "inst.signature.done",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 12
+    }
+   }
+  },
+  {
+   "from": "inst.signature.pad",
+   "relation": "binds-to",
+   "to": "prop.job.signature",
+   "label": "Strokes (TwoWay)",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "inst.signature.done",
+   "relation": "binds-to",
+   "to": "prop.job.has-signature",
+   "label": "IsEnabled",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "inst.signature.clear",
+   "relation": "invokes",
+   "to": "cmd.job.clear-signature",
+   "label": "Command",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 11
+    }
+   }
+  },
+  {
+   "from": "screen.signature",
+   "relation": "has-state",
+   "to": "state.signature.blank",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "screen.signature",
+   "relation": "has-state",
+   "to": "state.signature.signed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "state.signature.blank",
+   "relation": "transitions-to",
+   "to": "state.signature.signed",
+   "label": "first stroke",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "cmd.job.clear-signature",
+   "relation": "transitions-to",
+   "to": "state.signature.blank",
+   "label": "Signature = null",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 33
+    }
+   }
+  },
+  {
+   "from": "state.signature.blank",
+   "relation": "depends-on",
+   "to": "prop.job.has-signature",
+   "label": "== false",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "state.signature.signed",
+   "relation": "depends-on",
+   "to": "prop.job.has-signature",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "belongs-to",
+   "to": "feature.sync",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "uses-viewmodel",
+   "to": "vm.outbox",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 61
+    }
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "contains",
+   "to": "inst.outbox.failed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 8
+    }
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "contains",
+   "to": "inst.outbox.feed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 10
+    }
+   }
+  },
+  {
+   "from": "inst.outbox.feed",
+   "relation": "contains",
+   "to": "inst.outbox.list",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 12
+    }
+   }
+  },
+  {
+   "from": "inst.outbox.list",
+   "relation": "contains",
+   "to": "inst.outbox.status-chip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 17
+    }
+   }
+  },
+  {
+   "from": "inst.outbox.status-chip",
+   "relation": "instance-of",
+   "to": "component.status-chip",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 17
+    }
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "contains",
+   "to": "inst.outbox.sync-now",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 27
+    }
+   }
+  },
+  {
+   "from": "inst.outbox.failed",
+   "relation": "binds-to",
+   "to": "prop.outbox.failed-count",
+   "label": "Text",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "inst.outbox.feed",
+   "relation": "binds-to",
+   "to": "prop.outbox.items",
+   "label": "Source",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 10
+    }
+   }
+  },
+  {
+   "from": "inst.outbox.sync-now",
+   "relation": "binds-to",
+   "to": "prop.outbox.can-sync",
+   "label": "IsEnabled",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 29
+    }
+   }
+  },
+  {
+   "from": "inst.outbox.sync-now",
+   "relation": "binds-to",
+   "to": "prop.outbox.is-syncing",
+   "label": "ProgressRing.IsActive",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 33
+    }
+   }
+  },
+  {
+   "from": "inst.outbox.sync-now",
+   "relation": "invokes",
+   "to": "cmd.outbox.sync-now",
+   "label": "Command",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 30
+    }
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "has-state",
+   "to": "state.outbox.empty",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 23
+    }
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "has-state",
+   "to": "state.outbox.pending",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 12
+    }
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "has-state",
+   "to": "state.outbox.syncing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 33
+    }
+   }
+  },
+  {
+   "from": "screen.outbox",
+   "relation": "has-state",
+   "to": "state.outbox.failed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "cmd.outbox.sync-now",
+   "relation": "transitions-to",
+   "to": "state.outbox.syncing",
+   "label": "IsSyncing = true",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 15
+    }
+   }
+  },
+  {
+   "from": "state.outbox.syncing",
+   "relation": "transitions-to",
+   "to": "state.outbox.empty",
+   "label": "pushed",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-vm",
+     "line": 16
+    }
+   }
+  },
+  {
+   "from": "state.outbox.syncing",
+   "relation": "transitions-to",
+   "to": "state.outbox.failed",
+   "label": "some failed",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.7,
+    "rationale": "PushAsync leaves failed items in the store; FailedCount rises."
+   }
+  },
+  {
+   "from": "state.outbox.syncing",
+   "relation": "depends-on",
+   "to": "prop.outbox.is-syncing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 33
+    }
+   }
+  },
+  {
+   "from": "state.outbox.failed",
+   "relation": "depends-on",
+   "to": "prop.outbox.failed-count",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.outbox-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "screen.profile",
+   "relation": "belongs-to",
+   "to": "feature.account",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "screen.profile",
+   "relation": "uses-viewmodel",
+   "to": "vm.profile",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 62
+    }
+   }
+  },
+  {
+   "from": "screen.profile",
+   "relation": "contains",
+   "to": "inst.profile.name",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 6
+    }
+   }
+  },
+  {
+   "from": "screen.profile",
+   "relation": "contains",
+   "to": "inst.profile.region",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "screen.profile",
+   "relation": "contains",
+   "to": "inst.profile.settings",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 8
+    }
+   }
+  },
+  {
+   "from": "screen.profile",
+   "relation": "contains",
+   "to": "inst.profile.sign-out",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "inst.profile.name",
+   "relation": "binds-to",
+   "to": "prop.profile.display-name",
+   "label": "Text",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 6
+    }
+   }
+  },
+  {
+   "from": "inst.profile.region",
+   "relation": "binds-to",
+   "to": "prop.profile.region",
+   "label": "Text",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "inst.profile.sign-out",
+   "relation": "invokes",
+   "to": "cmd.profile.sign-out",
+   "label": "Command",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "screen.settings",
+   "relation": "belongs-to",
+   "to": "feature.account",
+   "evidence": {
+    "kind": "derived",
+    "confidence": 0.9
+   }
+  },
+  {
+   "from": "screen.settings",
+   "relation": "uses-viewmodel",
+   "to": "vm.settings",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 63
+    }
+   }
+  },
+  {
+   "from": "screen.settings",
+   "relation": "contains",
+   "to": "inst.settings.wifi-only",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-xaml",
+     "line": 6
+    }
+   }
+  },
+  {
+   "from": "screen.settings",
+   "relation": "contains",
+   "to": "inst.settings.map-style",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-xaml",
+     "line": 8
+    }
+   }
+  },
+  {
+   "from": "inst.settings.wifi-only",
+   "relation": "binds-to",
+   "to": "prop.settings.upload-on-wifi-only",
+   "label": "IsOn (TwoWay)",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-xaml",
+     "line": 7
+    }
+   }
+  },
+  {
+   "from": "inst.settings.map-style",
+   "relation": "binds-to",
+   "to": "prop.settings.map-styles",
+   "label": "ItemsSource",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "inst.settings.map-style",
+   "relation": "binds-to",
+   "to": "prop.settings.map-style",
+   "label": "SelectedItem (TwoWay)",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.settings-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "inst.today.job-list",
+   "relation": "entered-via",
+   "to": "route.today-to-job",
+   "label": "item click",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 21
+    }
+   }
+  },
+  {
+   "from": "route.today-to-job",
+   "relation": "navigates-to",
+   "to": "screen.job",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 71
+    }
+   }
+  },
+  {
+   "from": "inst.today.outbox-button",
+   "relation": "entered-via",
+   "to": "route.today-to-outbox",
+   "label": "click",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 12
+    }
+   }
+  },
+  {
+   "from": "route.today-to-outbox",
+   "relation": "navigates-to",
+   "to": "screen.outbox",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 75
+    }
+   }
+  },
+  {
+   "from": "inst.today.avatar",
+   "relation": "entered-via",
+   "to": "route.today-to-profile",
+   "label": "click",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.today-xaml",
+     "line": 9
+    }
+   }
+  },
+  {
+   "from": "route.today-to-profile",
+   "relation": "navigates-to",
+   "to": "screen.profile",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 76
+    }
+   }
+  },
+  {
+   "from": "inst.job.map-button",
+   "relation": "entered-via",
+   "to": "route.job-to-map",
+   "label": "click",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 17
+    }
+   }
+  },
+  {
+   "from": "route.job-to-map",
+   "relation": "navigates-to",
+   "to": "screen.map",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 72
+    }
+   }
+  },
+  {
+   "from": "inst.map.job-map",
+   "relation": "entered-via",
+   "to": "route.map-to-job",
+   "label": "pin tap",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.map-xaml",
+     "line": 13
+    }
+   }
+  },
+  {
+   "from": "route.map-to-job",
+   "relation": "navigates-to",
+   "to": "screen.job",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 71
+    }
+   }
+  },
+  {
+   "from": "inst.job.photos-button",
+   "relation": "entered-via",
+   "to": "route.job-to-photos",
+   "label": "click",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 26
+    }
+   }
+  },
+  {
+   "from": "route.job-to-photos",
+   "relation": "navigates-to",
+   "to": "screen.photos",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 73
+    }
+   }
+  },
+  {
+   "from": "inst.job.sign-button",
+   "relation": "entered-via",
+   "to": "route.job-to-signature",
+   "label": "click",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-xaml",
+     "line": 28
+    }
+   }
+  },
+  {
+   "from": "route.job-to-signature",
+   "relation": "navigates-to",
+   "to": "screen.signature",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 74
+    }
+   }
+  },
+  {
+   "from": "inst.signature.done",
+   "relation": "entered-via",
+   "to": "route.signature-to-job",
+   "label": "click",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.signature-xaml",
+     "line": 14
+    }
+   }
+  },
+  {
+   "from": "route.signature-to-job",
+   "relation": "navigates-to",
+   "to": "screen.job",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 71
+    }
+   }
+  },
+  {
+   "from": "cmd.job.complete",
+   "relation": "entered-via",
+   "to": "route.job-to-today",
+   "label": "after completing",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.job-vm",
+     "line": 41
+    }
+   }
+  },
+  {
+   "from": "route.job-to-today",
+   "relation": "navigates-to",
+   "to": "screen.today",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 70
+    }
+   }
+  },
+  {
+   "from": "inst.profile.settings",
+   "relation": "entered-via",
+   "to": "route.profile-to-settings",
+   "label": "click",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.profile-xaml",
+     "line": 8
+    }
+   }
+  },
+  {
+   "from": "route.profile-to-settings",
+   "relation": "navigates-to",
+   "to": "screen.settings",
+   "evidence": {
+    "kind": "declared",
+    "confidence": 1.0,
+    "source": {
+     "file": "f.app",
+     "line": 77
+    }
+   }
+  }
+ ],
+ "unresolved": [
+  "SignaturePad (Fieldwork.Ink) is a third-party control; its internal states are not modelled.",
+  "Back navigation other than Signature's \"-\" request is not modelled.",
+  "IOutboxStore.HasPendingFor is not in the excerpts, so the unsynced-changes link is inferred at low confidence."
+ ]
+}

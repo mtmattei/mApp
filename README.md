@@ -15,6 +15,9 @@ Code stays the source of truth. The canvas is a projection of `AppModel`, never 
 
 > New here? Read this file, then `docs/SPEC.md` (the build spec), then `docs/CLAUDE.md` (conventions).
 > The visual target is `design/atlas-prototype.html`.
+>
+> Looking for **App Orbit**, the spatial inspector that goes one level deeper into each screen?
+> It lives in [`AppOrbit/`](AppOrbit/README.md) and has its own guide.
 
 ---
 
@@ -79,6 +82,7 @@ Two independent pipelines fill that document, and the viewer renders the merge:
 | `Atlas.Cli` | `net10.0` (exe `atlas`) | `atlas extract` — runs extraction + layout, emits JSON. |
 | `Atlas.App` | `net10.0-desktop;net10.0-browserwasm` | The Uno viewer: `MapPage`, `NodeCard`, `EdgeLayer`, drawer panels, MVUX models. |
 | `Atlas.Tests` | `net10.0` (xunit) | Extraction, model round-trip, graph-query, interpreter coverage. |
+| `AppOrbit/` | `net10.0-desktop` | App Orbit, a separate Uno app with its own solution and `global.json`. Not part of `Atlas.sln`. See [`AppOrbit/README.md`](AppOrbit/README.md). |
 
 ---
 
@@ -94,7 +98,7 @@ Two independent pipelines fill that document, and the viewer renders the merge:
 
 ```powershell
 dotnet build Atlas.sln
-dotnet test Atlas.Tests/Atlas.Tests.csproj   # 64 tests
+dotnet test Atlas.Tests/Atlas.Tests.csproj   # 68 tests
 ```
 
 ### Run the viewer
@@ -193,3 +197,18 @@ API for true natural language is the open Phase-4 upgrade.
 | `TOOLING.md` | Running/publishing the viewer and wiring the agent into a target app. |
 | `design/atlas-prototype.html` | The interactive visual reference. |
 | `samples/` | The canonical `AppModel` fixtures and the `RoundsApp` reference app. |
+| `AppOrbit/README.md` | App Orbit: what it is, how to run it, how it relates to Atlas. |
+
+---
+
+## App Orbit
+
+[`AppOrbit/`](AppOrbit/README.md) grew out of the Atlas idea. Atlas maps how you move between
+screens; App Orbit opens one screen and shows what it depends on: its view model, the members
+each control binds to, its states, and the components it shares with other screens, each fact
+linked to its source line. It is a working prototype on hand-written graphs of two sample apps.
+
+The two meet at extraction. Atlas already reads real source with Roslyn; an importer from
+`AppModel` to App Orbit's graph format would give App Orbit real screens and routes, and is the
+next step. App Orbit keeps its own conventions (a single store, its own theme tokens) inside its
+folder; `docs/CLAUDE.md` still governs everything else.
