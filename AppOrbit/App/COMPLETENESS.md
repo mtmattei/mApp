@@ -5,7 +5,7 @@ on desktop. This is the completeness checklist applied to that scope, with the
 evidence for each row. "Out of scope" means the scope excludes it, not that
 it was skipped.
 
-Evidence sources: the journey runner (74 checks, light and dark), the layout
+Evidence sources: the journey runner (75 checks, light and dark), the layout
 fixture (888 cases), real-input probes under Xvfb (xdotool key presses, clicks,
 window sizes, restarts, broken graph files) and screenshots of each probe.
 

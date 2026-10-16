@@ -1,0 +1,10 @@
+# Outputs written by the checks and tools; the committed screenshots live in App/shots/*.png
+App/shots/*.out
+App/shots/*.log
+App/shots-dark/
+App/tools/record/raw.mp4
+App/tools/record/captions.tsv
+App/tools/record/captions.ass
+*.stress.log
+stress-*.graph.json
+package-lock.json
